@@ -59,14 +59,32 @@ export function AuthProvider({ children }) {
     }
   }, [orders]);
 
-  const login = (email, password, name = '') => {
-    const displayName = name || (email ? email.split('@')[0] : 'Valued Customer');
+  const login = (identifier, _passwordOrOptions = '', name = '') => {
+    let targetIdentifier = identifier;
+    let customName = name;
+    if (typeof identifier === 'object' && identifier !== null) {
+      targetIdentifier = identifier.identifier || identifier.email || identifier.phone;
+      customName = identifier.name || name;
+    }
+
+    const trimmed = String(targetIdentifier || '').trim();
+    const isPhone = !trimmed.includes('@') && /^\+?[\d\s-]{8,}$/.test(trimmed);
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    const cleanPhone = isPhone
+      ? (digitsOnly.length === 10 ? `+91 ${digitsOnly}` : `+${digitsOnly}`)
+      : (user?.phone || '+91 98765 43210');
+    const cleanEmail = isPhone
+      ? (user?.email || `customer.${digitsOnly.slice(-4)}@grocerychoice.com`)
+      : trimmed;
+    const displayName = customName || (isPhone ? `Customer ${digitsOnly.slice(-4)}` : trimmed.split('@')[0]);
+
     const newUser = {
       isLoggedIn: true,
       fullName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-      email: email || 'customer@grocerychoice.com',
-      phone: '+91 98765 43210',
-      address: {
+      email: cleanEmail,
+      phone: cleanPhone,
+      authMethod: isPhone ? 'mobile_otp' : 'email_otp',
+      address: user?.address || {
         street: 'Flat 402, Green Meadows Residency, Sector 14',
         city: 'Gurugram',
         state: 'Haryana',
@@ -75,6 +93,10 @@ export function AuthProvider({ children }) {
     };
     setUser(newUser);
     return newUser;
+  };
+
+  const loginWithOtp = (identifier, meta = {}) => {
+    return login(identifier, '', meta.name || '');
   };
 
   const register = (fullName, email, phone, _password) => {
@@ -123,6 +145,7 @@ export function AuthProvider({ children }) {
     user,
     isLoggedIn: !!user?.isLoggedIn,
     login,
+    loginWithOtp,
     register,
     logout,
     orders,

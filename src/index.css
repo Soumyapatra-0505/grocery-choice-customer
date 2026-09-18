@@ -978,3 +978,170 @@ button, a.nav-link, a.btn, input[type="submit"] {
   animation: spin 1s linear infinite;
 }
 
+/* ==========================================================================
+   OTP Login Component Styles
+   ========================================================================== */
+
+.otp-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.otp-target-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background-color: var(--bg-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.otp-change-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all var(--transition-fast);
+}
+
+.otp-change-btn:hover {
+  color: var(--primary-hover);
+  background-color: var(--primary-subtle);
+}
+
+.otp-inputs-grid {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.otp-box {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.otp-box:focus {
+  border-color: var(--primary);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+.otp-box.has-value {
+  border-color: var(--primary-border);
+  background-color: #ffffff;
+}
+
+.otp-box.is-invalid {
+  border-color: var(--accent-red);
+  background-color: var(--accent-red-light);
+}
+
+@media (max-width: 400px) {
+  .otp-inputs-grid {
+    gap: 0.35rem;
+  }
+  .otp-box {
+    width: 40px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+}
+
+.otp-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.otp-resend-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.otp-resend-btn:hover:not(:disabled) {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.otp-resend-btn:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.otp-demo-card {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background-color: #ecfdf5;
+  border: 1px dashed #059669;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.otp-demo-btn {
+  background-color: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.otp-demo-btn:hover {
+  background-color: #047857;
+}
+
+.otp-webotp-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #047857;
+  background-color: #f0fdf4;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid #bbf7d0;
+}
+

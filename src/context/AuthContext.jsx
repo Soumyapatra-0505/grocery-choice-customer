@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initialOrders } from '../data/mockOrders';
+import { authApi } from '../services/api';
 
 const AuthContext = createContext();
 
 const USER_STORAGE_KEY = 'grocery_choice_user';
+const TOKEN_STORAGE_KEY = 'grocery_choice_token';
 const ORDERS_STORAGE_KEY = 'grocery_choice_orders';
 
 export function AuthProvider({ children }) {
-  // Demo default user for quick previewing
+  // Saved user or initial customer preview
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem(USER_STORAGE_KEY);
@@ -15,9 +17,11 @@ export function AuthProvider({ children }) {
         ? JSON.parse(saved)
         : {
             isLoggedIn: true,
+            id: 1,
             fullName: 'Rahul Sharma',
             email: 'rahul.sharma@example.com',
             phone: '+91 98765 43210',
+            role: 'ROLE_CUSTOMER',
             address: {
               street: 'Flat 402, Green Meadows Residency, Sector 14',
               city: 'Gurugram',
@@ -39,6 +43,30 @@ export function AuthProvider({ children }) {
     }
   });
 
+  // Verify and sync user profile with backend on startup if token exists
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      authApi.getProfile()
+        .then((profile) => {
+          if (profile && profile.id) {
+            setUser((prev) => ({
+              ...prev,
+              id: profile.id,
+              fullName: profile.fullName || prev?.fullName,
+              email: profile.email || prev?.email,
+              phone: profile.phone || prev?.phone,
+              role: profile.role || 'ROLE_CUSTOMER',
+              isLoggedIn: true
+            }));
+          }
+        })
+        .catch((err) => {
+          console.debug('Session check note:', err.message);
+        });
+    }
+  }, []);
+
   useEffect(() => {
     try {
       if (user) {
@@ -59,52 +87,87 @@ export function AuthProvider({ children }) {
     }
   }, [orders]);
 
-  const login = (identifier, _passwordOrOptions = '', name = '') => {
-    let targetIdentifier = identifier;
-    let customName = name;
-    if (typeof identifier === 'object' && identifier !== null) {
-      targetIdentifier = identifier.identifier || identifier.email || identifier.phone;
-      customName = identifier.name || name;
+  const login = (userDataOrIdentifier, tokenOrOptions = '', name = '') => {
+    let token = null;
+    let targetUser = null;
+
+    if (typeof userDataOrIdentifier === 'object' && userDataOrIdentifier !== null) {
+      if (typeof tokenOrOptions === 'string' && tokenOrOptions.length > 20) {
+        token = tokenOrOptions;
+      } else if (userDataOrIdentifier.token) {
+        token = userDataOrIdentifier.token;
+      }
+
+      const u = userDataOrIdentifier.user || userDataOrIdentifier;
+      const id = u.id || user?.id || 1;
+      const fullName = u.fullName || u.name || name || 'Valued Customer';
+      const email = u.email || '';
+      const phone = u.phone || '';
+      const role = u.role || 'ROLE_CUSTOMER';
+
+      targetUser = {
+        id,
+        fullName,
+        email,
+        phone,
+        role,
+        isLoggedIn: true,
+        authMethod: phone ? 'mobile_otp' : 'email_otp',
+        address: u.address || user?.address || {
+          street: 'Flat 402, Green Meadows Residency, Sector 14',
+          city: 'Gurugram',
+          state: 'Haryana',
+          pincode: '122001'
+        }
+      };
+    } else {
+      const trimmed = String(userDataOrIdentifier || '').trim();
+      const isPhone = !trimmed.includes('@') && /^\+?[\d\s-]{8,}$/.test(trimmed);
+      const digitsOnly = trimmed.replace(/\D/g, '');
+      const cleanPhone = isPhone
+        ? (digitsOnly.length === 10 ? `+91 ${digitsOnly}` : `+${digitsOnly}`)
+        : (user?.phone || '+91 98765 43210');
+      const cleanEmail = isPhone
+        ? (user?.email || `customer.${digitsOnly.slice(-4)}@grocerychoice.com`)
+        : trimmed;
+      const displayName = name || (isPhone ? `Customer ${digitsOnly.slice(-4)}` : trimmed.split('@')[0]);
+
+      targetUser = {
+        id: user?.id || 1,
+        isLoggedIn: true,
+        fullName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+        email: cleanEmail,
+        phone: cleanPhone,
+        role: 'ROLE_CUSTOMER',
+        authMethod: isPhone ? 'mobile_otp' : 'email_otp',
+        address: user?.address || {
+          street: 'Flat 402, Green Meadows Residency, Sector 14',
+          city: 'Gurugram',
+          state: 'Haryana',
+          pincode: '122001'
+        }
+      };
     }
 
-    const trimmed = String(targetIdentifier || '').trim();
-    const isPhone = !trimmed.includes('@') && /^\+?[\d\s-]{8,}$/.test(trimmed);
-    const digitsOnly = trimmed.replace(/\D/g, '');
-    const cleanPhone = isPhone
-      ? (digitsOnly.length === 10 ? `+91 ${digitsOnly}` : `+${digitsOnly}`)
-      : (user?.phone || '+91 98765 43210');
-    const cleanEmail = isPhone
-      ? (user?.email || `customer.${digitsOnly.slice(-4)}@grocerychoice.com`)
-      : trimmed;
-    const displayName = customName || (isPhone ? `Customer ${digitsOnly.slice(-4)}` : trimmed.split('@')[0]);
-
-    const newUser = {
-      isLoggedIn: true,
-      fullName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-      email: cleanEmail,
-      phone: cleanPhone,
-      authMethod: isPhone ? 'mobile_otp' : 'email_otp',
-      address: user?.address || {
-        street: 'Flat 402, Green Meadows Residency, Sector 14',
-        city: 'Gurugram',
-        state: 'Haryana',
-        pincode: '122001'
-      }
-    };
-    setUser(newUser);
-    return newUser;
+    if (token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    }
+    setUser(targetUser);
+    return targetUser;
   };
 
   const loginWithOtp = (identifier, meta = {}) => {
-    return login(identifier, '', meta.name || '');
+    return login(identifier, meta.token || '', meta.name || '');
   };
 
   const register = (fullName, email, phone, _password) => {
     const newUser = {
       isLoggedIn: true,
+      id: user?.id || 1,
       fullName,
       email,
       phone: phone || '+91 98765 43210',
+      role: 'ROLE_CUSTOMER',
       address: {
         street: '12-B, Sunshine Avenues',
         city: 'Bengaluru',
@@ -117,6 +180,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
   };
 

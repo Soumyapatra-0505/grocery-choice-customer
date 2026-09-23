@@ -1,9 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { categories } from '../../data/categories';
+import { useCatalog } from '../../context/CatalogContext';
 import { Tag, LayoutGrid } from 'lucide-react';
 
 export default function Navbar() {
+  const { categories } = useCatalog();
+
   return (
     <nav className="app-navbar" aria-label="Product categories navigation">
       <div className="container">
@@ -48,3 +50,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

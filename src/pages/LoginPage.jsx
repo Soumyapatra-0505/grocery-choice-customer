@@ -73,7 +73,7 @@ export default function LoginPage() {
   // -------------------------------------------------------------
   // Step 2: Verify OTP Handler
   // -------------------------------------------------------------
-  const handleVerify = useCallback((otpToVerify = null) => {
+  const handleVerify = useCallback(async (otpToVerify = null) => {
     const code = typeof otpToVerify === 'string' ? otpToVerify : otpDigits.join('');
 
     setError('');
@@ -84,7 +84,7 @@ export default function LoginPage() {
     }
 
     setIsSubmitting(true);
-    const result = verifyOtp(identifier, code);
+    const result = await verifyOtp(identifier, code);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -98,12 +98,12 @@ export default function LoginPage() {
         webOtpAbortRef.current = null;
       }
 
-      // Complete login in AuthContext
-      login(identifier, '', identifierType === 'mobile' ? `Customer ${identifier.slice(-4)}` : '');
+      // Complete login in AuthContext with real token & user details
+      login(result, result.token, identifierType === 'mobile' ? `Customer ${identifier.slice(-4)}` : '');
       showToast('Signed in successfully! Welcome to Grocery Choice.', 'success');
       navigate(redirectPath);
     } else {
-      setError(result.message);
+      setError(result.message || 'Incorrect OTP. Please try again.');
     }
   }, [identifier, identifierType, login, navigate, otpDigits, redirectPath, showToast]);
 
@@ -179,7 +179,7 @@ export default function LoginPage() {
   // -------------------------------------------------------------
   // Step 1: Send OTP Handler
   // -------------------------------------------------------------
-  const handleSendOtp = (e) => {
+  const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     setError('');
     setInfoMessage('');
@@ -192,8 +192,8 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
 
-    // Call prototype OTP service
-    const result = sendOtp(identifier);
+    // Call Spring Boot OTP service
+    const result = await sendOtp(identifier);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -201,7 +201,7 @@ export default function LoginPage() {
       setDemoOtp(result.demoCode);
       setStep('otp');
       setOtpDigits(['', '', '', '', '', '']);
-      setResendTimer(RESEND_COOLDOWN_SECONDS);
+      setResendTimer(result.resendCooldownSeconds || RESEND_COOLDOWN_SECONDS);
       setInfoMessage(result.message);
       showToast(result.message, 'success');
 
@@ -219,19 +219,19 @@ export default function LoginPage() {
   // -------------------------------------------------------------
   // Step 2: Resend OTP Handler
   // -------------------------------------------------------------
-  const handleResendOtp = () => {
+  const handleResendOtp = async () => {
     if (resendTimer > 0 || isSubmitting) return;
 
     setError('');
     setIsSubmitting(true);
 
-    const result = sendOtp(identifier);
+    const result = await sendOtp(identifier);
     setIsSubmitting(false);
 
     if (result.success) {
       setDemoOtp(result.demoCode);
       setOtpDigits(['', '', '', '', '', '']);
-      setResendTimer(RESEND_COOLDOWN_SECONDS);
+      setResendTimer(result.resendCooldownSeconds || RESEND_COOLDOWN_SECONDS);
       setInfoMessage(`New OTP sent to your ${identifierType}.`);
       showToast(`New OTP sent to your ${identifierType}!`, 'success');
 

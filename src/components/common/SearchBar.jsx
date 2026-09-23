@@ -1,25 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ArrowRight } from 'lucide-react';
-import { products } from '../../data/products';
+import { useCatalog } from '../../context/CatalogContext';
 
 export default function SearchBar({ placeholder = 'Search for bananas, milk, atta, snacks, detergent...', onSearch }) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const { products } = useCatalog();
+
   const suggestions = React.useMemo(() => {
     if (query.trim().length < 2) return [];
     const q = query.toLowerCase();
     return products
       .filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.categoryName.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
+          (p.name || '').toLowerCase().includes(q) ||
+          (p.categoryName || '').toLowerCase().includes(q) ||
+          (p.description || '').toLowerCase().includes(q)
       )
       .slice(0, 5);
-  }, [query]);
+  }, [query, products]);
+
 
   // Handle clicking outside to close suggestions
   useEffect(() => {

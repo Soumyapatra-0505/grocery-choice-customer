@@ -29,14 +29,15 @@
  * a space, and "#" followed by the 6-digit OTP code.
  */
 
-// In-memory temporary store for active prototype OTPs
-// Key: normalized identifier, Value: { code, expiresAt, type, createdAt, attempts }
+import { authApi } from './api';
+
+// In-memory temporary store for dev/testing fallback
 const otpStore = new Map();
 
-// OTP Validity Duration: 120 seconds (2 minutes)
-export const OTP_EXPIRY_SECONDS = 120;
-// Resend Cooldown Duration: 30 seconds
-export const RESEND_COOLDOWN_SECONDS = 30;
+// OTP Validity Duration: 300 seconds (5 minutes)
+export const OTP_EXPIRY_SECONDS = 300;
+// Resend Cooldown Duration: 60 seconds
+export const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
  * Normalizes email or mobile number for consistent store lookup
@@ -46,7 +47,6 @@ export function normalizeIdentifier(identifier) {
   const trimmed = identifier.trim();
   // Check if it's mobile (only digits, spaces, hyphens, plus)
   if (!trimmed.includes('@') && /^\+?[\d\s-]{8,}$/.test(trimmed)) {
-    // Keep digits only, remove leading +91 or 91 if 12 digits, or keep 10-digit standard
     const digitsOnly = trimmed.replace(/\D/g, '');
     if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
       return digitsOnly.slice(2);
@@ -77,7 +77,6 @@ export function validateIdentifier(input) {
 
   // Mobile number check
   const digits = trimmed.replace(/\D/g, '');
-  // Accepts 10 digits directly, or 11 with leading 0, or 12 with 91 country code
   const is10Digit = digits.length === 10 && /^[6-9]\d{9}$/.test(digits);
   const is11Digit = digits.length === 11 && digits.startsWith('0') && /^[6-9]\d{9}$/.test(digits.slice(1));
   const is12Digit = digits.length === 12 && digits.startsWith('91') && /^[6-9]\d{9}$/.test(digits.slice(2));
@@ -95,51 +94,56 @@ export function validateIdentifier(input) {
 }
 
 /**
- * Generates and stores a mock 6-digit OTP for testing/development
+ * Sends a cryptographically secure OTP via Spring Boot backend API
  */
-export function sendOtp(rawIdentifier) {
+export async function sendOtp(rawIdentifier) {
   const validation = validateIdentifier(rawIdentifier);
   if (!validation.isValid) {
     return { success: false, error: validation.error };
   }
 
   const normalized = validation.normalized;
-  // Generate random 6-digit numeric OTP (100000 - 999999)
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const now = Date.now();
-  const expiresAt = now + OTP_EXPIRY_SECONDS * 1000;
 
-  const record = {
-    code,
-    type: validation.type,
-    identifier: normalized,
-    rawIdentifier: rawIdentifier.trim(),
-    createdAt: now,
-    expiresAt,
-    attempts: 0
-  };
+  try {
+    const res = await authApi.sendOtp(normalized, 'LOGIN');
 
-  otpStore.set(normalized, record);
+    // In local development / test mode, fetch dev OTP for the auto-fill helper
+    let devCode = null;
+    try {
+      const devRes = await authApi.getDevOtp(normalized);
+      if (devRes && devRes.otp) {
+        devCode = devRes.otp;
+      }
+    } catch {
+      // Dev endpoint may not be reached or enabled in strict prod
+    }
 
-  // In development, return the code so the UI can provide an easy demo helper
-  return {
-    success: true,
-    type: validation.type,
-    identifier: normalized,
-    demoCode: code,
-    expiresInSeconds: OTP_EXPIRY_SECONDS,
-    message: validation.type === 'mobile'
-      ? `6-digit OTP sent to +91 ${normalized}`
-      : `6-digit OTP sent to ${normalized}`
-  };
+    return {
+      success: true,
+      type: validation.type,
+      identifier: normalized,
+      demoCode: devCode,
+      expiresInSeconds: res.expiresInSeconds || OTP_EXPIRY_SECONDS,
+      resendCooldownSeconds: res.resendCooldownSeconds || RESEND_COOLDOWN_SECONDS,
+      message: res.message || (validation.type === 'mobile'
+        ? `6-digit OTP sent to +91 ${normalized}`
+        : `6-digit OTP sent to ${normalized}`)
+    };
+  } catch (err) {
+    console.error('Error sending OTP from server:', err);
+    return {
+      success: false,
+      error: err.message || 'Failed to send OTP. Please try again.'
+    };
+  }
 }
 
 /**
- * Verifies the entered 6-digit OTP
+ * Verifies the entered 6-digit OTP against Spring Boot backend and obtains JWT
  */
-export function verifyOtp(rawIdentifier, inputCode) {
-  const normalized = normalizeIdentifier(rawIdentifier);
-  const record = otpStore.get(normalized);
+export async function verifyOtp(rawIdentifier, inputCode, name = '') {
+  const validation = validateIdentifier(rawIdentifier);
+  const normalized = validation.isValid ? validation.normalized : normalizeIdentifier(rawIdentifier);
 
   if (!inputCode || typeof inputCode !== 'string' || inputCode.length !== 6 || !/^\d{6}$/.test(inputCode)) {
     return {
@@ -149,56 +153,28 @@ export function verifyOtp(rawIdentifier, inputCode) {
     };
   }
 
-  if (!record) {
+  try {
+    const res = await authApi.verifyOtp(normalized, inputCode, name);
+    return {
+      success: true,
+      message: res.message || 'OTP verified successfully',
+      type: validation.type,
+      identifier: normalized,
+      token: res.token,
+      user: res.user
+    };
+  } catch (err) {
+    console.error('Error verifying OTP with server:', err);
     return {
       success: false,
-      error: 'NOT_FOUND',
-      message: 'No active OTP found for this number/email. Please request a new OTP.'
+      error: err.message,
+      message: err.message || 'Verification failed. Please try again.'
     };
   }
-
-  // Check Expiration
-  if (Date.now() > record.expiresAt) {
-    otpStore.delete(normalized);
-    return {
-      success: false,
-      error: 'EXPIRED',
-      message: 'This OTP has expired. Please click "Resend OTP" to receive a new code.'
-    };
-  }
-
-  // Check Attempts limit (e.g. max 5 wrong attempts)
-  record.attempts += 1;
-  if (record.attempts > 5) {
-    otpStore.delete(normalized);
-    return {
-      success: false,
-      error: 'MAX_ATTEMPTS',
-      message: 'Too many incorrect attempts. For security, please request a fresh OTP.'
-    };
-  }
-
-  // Verify Code
-  if (record.code !== inputCode) {
-    return {
-      success: false,
-      error: 'MISMATCH',
-      message: 'Incorrect OTP. Please check the 6-digit code and try again.'
-    };
-  }
-
-  // Success: Clear OTP so it cannot be reused
-  otpStore.delete(normalized);
-  return {
-    success: true,
-    message: 'OTP verified successfully',
-    type: record.type,
-    identifier: normalized
-  };
 }
 
 /**
- * Clears active OTP for an identifier (e.g., when user goes back to change identifier)
+ * Clears active OTP state
  */
 export function clearOtp(rawIdentifier) {
   const normalized = normalizeIdentifier(rawIdentifier);
@@ -206,7 +182,7 @@ export function clearOtp(rawIdentifier) {
 }
 
 /**
- * Helper to inspect current active mock OTP (useful for testing/demo banner)
+ * Helper to inspect active OTP
  */
 export function getActiveMockOtp(rawIdentifier) {
   const normalized = normalizeIdentifier(rawIdentifier);

@@ -1,29 +1,56 @@
 import React, { useState } from 'react';
-import { Package, Truck, CheckCircle2, Clock, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import { Package, Truck, CheckCircle2, Clock, ChevronDown, ChevronUp, MapPin, XCircle } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import Button from '../common/Button';
 
-export default function OrderCard({ order }) {
+export default function OrderCard({ order, onCancel, isCancelling }) {
   const [expanded, setExpanded] = useState(false);
   const { addToCart } = useCart();
 
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'delivered':
-        return { bg: '#ecfdf5', text: '#059669', border: '#a7f3d0', icon: <CheckCircle2 size={16} /> };
-      case 'out for delivery':
-        return { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <Truck size={16} /> };
+    switch (status?.toUpperCase()) {
+      case 'DELIVERED':
+        return { bg: '#ecfdf5', text: '#059669', border: '#a7f3d0', icon: <CheckCircle2 size={16} />, label: 'Delivered' };
+      case 'OUT_FOR_DELIVERY':
+      case 'OUT FOR DELIVERY':
+        return { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <Truck size={16} />, label: 'Out for Delivery' };
+      case 'PROCESSING':
+        return { bg: '#fef3c7', text: '#d97706', border: '#fde68a', icon: <Clock size={16} />, label: 'Processing' };
+      case 'CONFIRMED':
+        return { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <CheckCircle2 size={16} />, label: 'Confirmed' };
+      case 'CANCELLED':
+        return { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle size={16} />, label: 'Cancelled' };
+      case 'PLACED':
       default:
-        return { bg: '#fffbeb', text: '#b45309', border: '#fde68a', icon: <Clock size={16} /> };
+        return { bg: '#fffbeb', text: '#b45309', border: '#fde68a', icon: <Clock size={16} />, label: status || 'Placed' };
     }
   };
 
   const statusStyle = getStatusColor(order.status);
+  const orderNumber = order.orderNumber || (typeof order.id === 'string' && order.id.startsWith('GC-') ? order.id : `GC-ORD-${order.id}`);
+  const displayTotal = order.totalAmount !== undefined ? order.totalAmount : order.total;
+  const formattedDate = order.formattedDate || (order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }) : 'Recently Placed');
+
+  const canCancel = (order.status === 'PLACED' || order.status === 'CONFIRMED' || order.status === 'Placed') && !!onCancel;
 
   const handleReorder = () => {
     if (order.items && order.items.length > 0) {
       order.items.forEach((item) => {
-        addToCart(item, item.quantity || 1);
+        const productObj = {
+          id: item.productId || item.id,
+          name: item.productName || item.name,
+          unit: item.unit,
+          price: item.price || item.discountPrice,
+          sellingPrice: item.price || item.discountPrice,
+          image: item.imageUrl || item.image
+        };
+        addToCart(productObj, item.quantity || 1);
       });
     }
   };
@@ -67,11 +94,11 @@ export default function OrderCard({ order }) {
             <Package size={20} />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>
-              Order #{order.id}
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a', fontFamily: 'monospace' }}>
+              {orderNumber}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-              Placed on {order.formattedDate}
+              Placed on {formattedDate}
             </div>
           </div>
         </div>
@@ -92,7 +119,7 @@ export default function OrderCard({ order }) {
           }}
         >
           {statusStyle.icon}
-          <span>{order.status}</span>
+          <span>{statusStyle.label}</span>
         </div>
       </div>
 
@@ -102,7 +129,7 @@ export default function OrderCard({ order }) {
           {order.items?.map((item, idx) => (
             <div
               key={idx}
-              title={`${item.name} (${item.quantity}x)`}
+              title={`${item.productName || item.name} (${item.quantity}x)`}
               style={{
                 width: '48px',
                 height: '48px',
@@ -113,8 +140,8 @@ export default function OrderCard({ order }) {
               }}
             >
               <img
-                src={item.image}
-                alt={item.name}
+                src={item.imageUrl || item.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200'}
+                alt={item.productName || item.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
@@ -125,10 +152,27 @@ export default function OrderCard({ order }) {
         </div>
 
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Total Paid</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-            ₹{order.total}
+          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            Total Amount
           </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+            ₹{displayTotal}
+          </div>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 800,
+              padding: '0.1rem 0.45rem',
+              borderRadius: '4px',
+              backgroundColor: order.paymentStatus === 'PAID' || order.paymentStatus === 'Paid' ? '#ecfdf5' : '#fffbeb',
+              color: order.paymentStatus === 'PAID' || order.paymentStatus === 'Paid' ? '#065f46' : '#92400e',
+              border: `1px solid ${order.paymentStatus === 'PAID' || order.paymentStatus === 'Paid' ? '#a7f3d0' : '#fde68a'}`,
+              display: 'inline-block',
+              marginTop: '0.15rem'
+            }}
+          >
+            Payment: {order.paymentStatus || 'PENDING'}
+          </span>
         </div>
       </div>
 
@@ -156,10 +200,10 @@ export default function OrderCard({ order }) {
                 }}
               >
                 <span>
-                  {item.quantity}x {item.name} ({item.unit})
+                  {item.quantity}x {item.productName || item.name} ({item.unit})
                 </span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                  ₹{(item.price || item.discountPrice) * item.quantity}
+                  ₹{item.subtotal || ((item.price || item.discountPrice) * item.quantity)}
                 </span>
               </div>
             ))}
@@ -171,15 +215,14 @@ export default function OrderCard({ order }) {
                 <MapPin size={14} color="#059669" /> Delivery Address
               </div>
               <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.4 }}>
-                {order.address?.fullName}<br />
-                {order.address?.street}, {order.address?.city} - {order.address?.pincode}
+                {order.deliveryAddressText || order.address?.street || 'Standard Delivery Address'}
               </div>
             </div>
 
             <div>
               <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>Delivery Slot</div>
               <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                {order.deliverySlot || 'Standard Delivery'}
+                {order.deliverySlot || 'Standard Delivery (30-45 mins)'}
               </div>
               <div style={{ fontWeight: 700, color: '#0f172a', marginTop: '0.5rem', marginBottom: '0.25rem' }}>Payment Method</div>
               <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
@@ -219,7 +262,23 @@ export default function OrderCard({ order }) {
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {canCancel && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isCancelling}
+              onClick={() => onCancel(order.id)}
+              style={{
+                color: '#dc2626',
+                borderColor: '#fca5a5',
+                backgroundColor: '#fff'
+              }}
+            >
+              {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+            </Button>
+          )}
+
           <Button
             variant="secondary"
             size="sm"

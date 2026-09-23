@@ -198,6 +198,7 @@ export default function Header() {
                   <ShoppingCart size={20} />
                   {totalItems > 0 && (
                     <span
+                      className="cart-badge"
                       style={{
                         position: 'absolute',
                         top: '-8px',

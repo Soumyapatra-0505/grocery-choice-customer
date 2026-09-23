@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext();
 
 const CART_STORAGE_KEY = 'grocery_choice_cart';
-const FREE_DELIVERY_THRESHOLD = 499;
+const FREE_DELIVERY_THRESHOLD = 500;
 const STANDARD_DELIVERY_FEE = 40;
 
 export function CartProvider({ children }) {
@@ -39,22 +39,39 @@ export function CartProvider({ children }) {
   };
 
   const addToCart = (product, quantity = 1) => {
-    if (product.stockStatus === 'out_of_stock') {
+    const stockQty = Number(product.stockQuantity !== undefined ? product.stockQuantity : product.stockCount !== undefined ? product.stockCount : 99);
+    const isOutOfStock = product.stockStatus === 'out_of_stock' || stockQty <= 0 || product.active === false;
+
+    if (isOutOfStock) {
       showToast(`${product.name} is currently out of stock!`, 'error');
       return;
     }
 
     setCartItems((prevItems) => {
-      const existingIndex = prevItems.findIndex((item) => item.id === product.id);
+      const existingIndex = prevItems.findIndex((item) => String(item.id) === String(product.id));
       if (existingIndex > -1) {
         const updated = [...prevItems];
-        const newQty = updated[existingIndex].quantity + quantity;
+        const currentQty = updated[existingIndex].quantity;
+        const availableStock = stockQty;
+
+        let newQty = currentQty + quantity;
+        if (availableStock > 0 && newQty > availableStock) {
+          newQty = availableStock;
+          showToast(`Maximum available stock (${availableStock}) reached for "${product.name}"`, 'warning');
+        } else {
+          showToast(`Updated "${product.name}" quantity to ${newQty}`);
+        }
+
         updated[existingIndex] = { ...updated[existingIndex], quantity: newQty };
-        showToast(`Updated "${product.name}" quantity to ${newQty}`);
         return updated;
       } else {
+        const availableStock = stockQty;
+        let finalQty = quantity;
+        if (availableStock > 0 && finalQty > availableStock) {
+          finalQty = availableStock;
+        }
         showToast(`Added "${product.name}" to cart!`);
-        return [...prevItems, { ...product, quantity }];
+        return [...prevItems, { ...product, quantity: finalQty }];
       }
     });
   };
@@ -65,17 +82,27 @@ export function CartProvider({ children }) {
       return;
     }
     setCartItems((prevItems) =>
-      prevItems.map((item) => (item.id === productId ? { ...item, quantity } : item))
+      prevItems.map((item) => {
+        if (String(item.id) === String(productId)) {
+          const maxStock = Number(item.stockQuantity !== undefined ? item.stockQuantity : item.stockCount !== undefined ? item.stockCount : 99);
+          if (maxStock > 0 && quantity > maxStock) {
+            showToast(`Maximum available stock is ${maxStock}`, 'warning');
+            return { ...item, quantity: maxStock };
+          }
+          return { ...item, quantity };
+        }
+        return item;
+      })
     );
   };
 
   const removeFromCart = (productId) => {
     setCartItems((prevItems) => {
-      const item = prevItems.find((i) => i.id === productId);
+      const item = prevItems.find((i) => String(i.id) === String(productId));
       if (item) {
         showToast(`Removed "${item.name}" from cart`, 'info');
       }
-      return prevItems.filter((i) => i.id !== productId);
+      return prevItems.filter((i) => String(i.id) !== String(productId));
     });
   };
 
@@ -84,11 +111,11 @@ export function CartProvider({ children }) {
   };
 
   const isInCart = (productId) => {
-    return cartItems.some((item) => item.id === productId);
+    return cartItems.some((item) => String(item.id) === String(productId));
   };
 
   const getItemQuantity = (productId) => {
-    const item = cartItems.find((i) => i.id === productId);
+    const item = cartItems.find((i) => String(i.id) === String(productId));
     return item ? item.quantity : 0;
   };
 

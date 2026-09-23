@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
+import { CatalogProvider } from './context/CatalogContext';
 
 // Components
 import Header from './components/common/Header';
@@ -37,12 +38,13 @@ export default function App() {
   return (
     <AuthProvider>
       <LocationProvider>
-        <CartProvider>
-          <Router>
-            <ScrollToTop />
-            <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-              <Header />
-              <Navbar />
+        <CatalogProvider>
+          <CartProvider>
+            <Router>
+              <ScrollToTop />
+              <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <Header />
+                <Navbar />
 
               <main className="main-wrapper" id="main-content">
                 <Routes>
@@ -65,7 +67,8 @@ export default function App() {
               <LocationModal />
             </div>
           </Router>
-        </CartProvider>
+          </CartProvider>
+        </CatalogProvider>
       </LocationProvider>
     </AuthProvider>
   );

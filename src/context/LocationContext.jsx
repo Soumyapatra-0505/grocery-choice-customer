@@ -4,6 +4,20 @@ const LocationContext = createContext();
 
 const LOCATION_STORAGE_KEY = 'grocery_choice_location';
 
+const DEFAULT_SAVED_LOCATION = {
+  id: 'loc-default-1',
+  type: 'manual',
+  label: 'Home',
+  house: 'Flat 402, Green Glen Apartments',
+  street: 'Sector 14 Hub',
+  city: 'Gurugram',
+  state: 'Haryana',
+  pincode: '122001',
+  compactDisplay: 'Gurugram, 122001',
+  formattedAddress: 'Flat 402, Green Glen Apartments, Sector 14 Hub, Gurugram, Haryana - 122001',
+  createdAt: new Date().toISOString()
+};
+
 export function LocationProvider({ children }) {
   // Read initial stored state
   const [locationState, setLocationState] = useState(() => {
@@ -12,16 +26,16 @@ export function LocationProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          selectedLocation: parsed.selectedLocation || null,
-          savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : []
+          selectedLocation: parsed.selectedLocation || DEFAULT_SAVED_LOCATION,
+          savedLocations: Array.isArray(parsed.savedLocations) && parsed.savedLocations.length > 0 ? parsed.savedLocations : [DEFAULT_SAVED_LOCATION]
         };
       }
     } catch {
       // Fallback
     }
     return {
-      selectedLocation: null,
-      savedLocations: []
+      selectedLocation: DEFAULT_SAVED_LOCATION,
+      savedLocations: [DEFAULT_SAVED_LOCATION]
     };
   });
 

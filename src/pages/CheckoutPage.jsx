@@ -4,10 +4,19 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useDeliveryLocation } from '../context/LocationContext';
 import Button from '../components/common/Button';
+import PaymentSection from '../components/checkout/PaymentSection';
+import PaymentModal from '../components/checkout/PaymentModal';
+import { orderApi, paymentApi } from '../services/api';
 import {
-  CreditCard,
-  Banknote,
-  Smartphone,
+  PAYMENT_METHODS,
+  PAYMENT_STATES,
+  isCodEligible,
+  simulateGatewayPayment,
+  validateUpiId,
+  validateCardDetails,
+  COD_MAX_AMOUNT
+} from '../services/paymentService';
+import {
   Clock,
   ArrowLeft,
   CheckCircle2,
@@ -17,20 +26,148 @@ import {
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, deliveryFee, grandTotal, discountSavings, clearCart, showToast } = useCart();
-  const { user, placeOrder } = useAuth();
+  const { user } = useAuth();
   const { selectedLocation, openLocationModal } = useDeliveryLocation();
   const navigate = useNavigate();
+
+  const [confirmedOrder, setConfirmedOrder] = useState(null);
 
   const [formData, setFormData] = useState({
     fullName: user?.fullName || 'Rahul Sharma',
     email: user?.email || 'rahul.sharma@example.com',
     phone: user?.phone || '+91 98765 43210',
-    deliverySlot: 'Express Delivery (Within 25 mins)',
-    paymentMethod: 'Cash on Delivery (COD)'
+    deliverySlot: 'Express Delivery (Within 25 mins)'
   });
 
+  // Multi-method payment states
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(PAYMENT_METHODS.UPI);
+  const [paymentDetails, setPaymentDetails] = useState({
+    upiApp: 'gpay',
+    upiId: '',
+    cardNumber: '',
+    cardholderName: '',
+    expiryDate: '',
+    cvv: '',
+    bankId: 'sbi',
+    walletId: 'paytm_wallet'
+  });
+  const [simulationOutcome, setSimulationOutcome] = useState('SUCCESS'); // 'SUCCESS' | 'FAILURE' | 'CANCELLED'
+  const [paymentModal, setPaymentModal] = useState({
+    isOpen: false,
+    state: PAYMENT_STATES.IDLE,
+    paymentId: null,
+    errorMessage: ''
+  });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Order Confirmation Screen after successful backend placement
+  if (confirmedOrder) {
+    return (
+      <div className="container" style={{ padding: '3.5rem 1.5rem', maxWidth: '640px', margin: '0 auto' }}>
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            border: '1px solid #e2e8f0',
+            padding: '2.5rem',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          <div
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              backgroundColor: '#ecfdf5',
+              color: '#059669',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem'
+            }}
+          >
+            <CheckCircle2 size={40} />
+          </div>
+
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+            Order Placed Successfully!
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            Thank you for shopping with Grocery Choice. Your order has been placed and saved in MySQL.
+          </p>
+
+          <div
+            style={{
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              padding: '1.25rem',
+              textAlign: 'left',
+              marginBottom: '1.75rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Order Number</span>
+              <strong style={{ color: '#0f172a', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                {confirmedOrder.orderNumber}
+              </strong>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Total Amount</span>
+              <strong style={{ color: '#059669', fontSize: '1.15rem' }}>
+                ₹{confirmedOrder.totalAmount}
+              </strong>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Payment Status</span>
+              <span
+                style={{
+                  backgroundColor: confirmedOrder.paymentStatus === 'PAID' ? '#ecfdf5' : '#fffbeb',
+                  color: confirmedOrder.paymentStatus === 'PAID' ? '#059669' : '#b45309',
+                  border: confirmedOrder.paymentStatus === 'PAID' ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '9999px',
+                  fontWeight: 700,
+                  fontSize: '0.8rem'
+                }}
+              >
+                {confirmedOrder.paymentStatus === 'PAID'
+                  ? 'Paid (Razorpay)'
+                  : `Pending (${confirmedOrder.paymentMethod || 'Cash on Delivery'})`}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Delivery Slot</span>
+              <span style={{ color: '#0f172a', fontSize: '0.88rem', fontWeight: 600 }}>
+                {confirmedOrder.deliverySlot || 'Standard Delivery'}
+              </span>
+            </div>
+
+            <div>
+              <span style={{ color: '#64748b', fontSize: '0.82rem', display: 'block', marginBottom: '0.25rem' }}>Delivery Address</span>
+              <span style={{ color: '#334155', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                {confirmedOrder.deliveryAddressText}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/orders" className="btn btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
+              View in My Orders
+            </Link>
+            <Link to="/products" className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem' }}>
+              Shop More Groceries
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // If cart is empty, redirect to cart page
   if (cartItems.length === 0) {
@@ -65,54 +202,177 @@ export default function CheckoutPage() {
       newErrors.location = 'Please select a delivery location before placing your order';
       showToast('Please select a delivery location before placing your order', 'error');
     }
+    if (!selectedPaymentMethod) {
+      newErrors.paymentMethod = 'Please select a payment method';
+    }
+
+    // Method-specific validations
+    if (selectedPaymentMethod === PAYMENT_METHODS.UPI && paymentDetails.upiId) {
+      const upiVal = validateUpiId(paymentDetails.upiId);
+      if (!upiVal.isValid) {
+        newErrors.upiId = upiVal.error;
+      }
+    } else if (selectedPaymentMethod === PAYMENT_METHODS.CARD) {
+      const cardVal = validateCardDetails(paymentDetails);
+      if (!cardVal.isValid) {
+        newErrors.card = cardVal.error;
+        if (cardVal.error.includes('16-digit card number')) newErrors.cardNumber = cardVal.error;
+        else if (cardVal.error.includes('cardholder name')) newErrors.cardholderName = cardVal.error;
+        else if (cardVal.error.includes('expiry')) newErrors.expiryDate = cardVal.error;
+        else if (cardVal.error.includes('CVV')) newErrors.cvv = cardVal.error;
+      }
+    } else if (selectedPaymentMethod === PAYMENT_METHODS.COD && !isCodEligible(grandTotal)) {
+      newErrors.paymentMethod = `COD is available for orders up to ₹${COD_MAX_AMOUNT}`;
+      showToast(`COD limit exceeded. Max amount is ₹${COD_MAX_AMOUNT}`, 'error');
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePlaceOrder = (e) => {
-    e.preventDefault();
+  const handlePlaceOrder = async (e) => {
+    if (e) e.preventDefault();
+
+    // Prevent double clicking / duplicate orders
+    if (isSubmitting || paymentModal.state === PAYMENT_STATES.PROCESSING) {
+      return;
+    }
+
     if (!validate()) return;
 
     setIsSubmitting(true);
 
-    const orderPayload = {
+    const backendPayload = {
+      customerId: 1,
+      addressId: 1,
+      deliveryAddressText: selectedLocation
+        ? `${formData.fullName}, ${selectedLocation.formattedAddress || selectedLocation.compactDisplay || 'Standard Area'}, Phone: ${formData.phone}`
+        : 'Flat 402, Green Glen Apartments, Sector 14 Hub, Gurugram',
       items: cartItems.map((item) => ({
-        id: item.id,
-        name: item.name,
-        unit: item.unit,
-        price: item.discountPrice || item.price,
-        originalPrice: item.originalPrice,
-        quantity: item.quantity,
-        image: item.image
+        productId: Number(item.id),
+        quantity: item.quantity
       })),
-      subtotal,
-      deliveryFee,
-      discountSavings,
-      total: grandTotal,
-      deliverySlot: formData.deliverySlot,
-      paymentMethod: formData.paymentMethod,
-      deliveryLocation: selectedLocation,
-      address: {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        street: selectedLocation.formattedAddress || 'Current Location',
-        city: selectedLocation.city || 'Local Area',
-        state: selectedLocation.state || '',
-        pincode: selectedLocation.pincode || ''
-      }
+      paymentMethod: selectedPaymentMethod || 'Cash on Delivery',
+      deliverySlot: formData.deliverySlot
     };
 
-    setTimeout(() => {
-      const createdOrder = placeOrder(orderPayload);
-      clearCart();
-      showToast(`Order #${createdOrder.id} placed successfully!`, 'success');
+    try {
+      const createdOrder = await orderApi.create(backendPayload);
+
+      // 1. If Cash on Delivery, complete immediately without Razorpay
+      if (selectedPaymentMethod === PAYMENT_METHODS.COD) {
+        clearCart();
+        setConfirmedOrder(createdOrder);
+        showToast(`Order #${createdOrder.orderNumber} placed successfully!`, 'success');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Online Payment via Razorpay Test Mode
+      // Step A: Request Razorpay Test Order and public Key ID from backend
+      const rzpOrderData = await paymentApi.createOrder(createdOrder.id);
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay Checkout SDK is not available. Please check your connection.');
+      }
+
+      // Step B: Configure Razorpay Checkout with public Key ID only
+      const options = {
+        key: rzpOrderData.razorpayKeyId,
+        amount: rzpOrderData.amount,
+        currency: rzpOrderData.currency || 'INR',
+        name: 'Grocery Choice',
+        description: `Order #${createdOrder.orderNumber}`,
+        image: '/favicon.svg',
+        order_id: rzpOrderData.razorpayOrderId,
+        prefill: {
+          name: formData.fullName,
+          email: formData.email,
+          contact: formData.phone
+        },
+        theme: {
+          color: '#059669'
+        },
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false);
+            showToast('Payment was cancelled. You can retry anytime.', 'info');
+          }
+        },
+        handler: async function (response) {
+          try {
+            setIsSubmitting(true);
+            // Step C: Server-side HMAC-SHA256 signature verification
+            const verifyRes = await paymentApi.verifyPayment({
+              orderId: createdOrder.id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature
+            });
+
+            // Step D: Show success ONLY after backend verification succeeds
+            clearCart();
+            setConfirmedOrder({
+              ...createdOrder,
+              paymentStatus: verifyRes.paymentStatus || 'PAID',
+              paymentMethod: 'Online (Razorpay)'
+            });
+            showToast(`Payment verified! Order #${createdOrder.orderNumber} confirmed.`, 'success');
+          } catch (verifyErr) {
+            console.error('Payment verification failed:', verifyErr);
+            showToast(verifyErr.message || 'Payment verification failed on server.', 'error');
+            setErrors((prev) => ({ ...prev, submit: verifyErr.message }));
+          } finally {
+            setIsSubmitting(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (failResponse) {
+        setIsSubmitting(false);
+        const errMsg = failResponse.error ? failResponse.error.description : 'Payment failed. Please try again.';
+        showToast(errMsg, 'error');
+      });
+      rzp.open();
+
+    } catch (err) {
+      console.error('Failed to process order/payment:', err);
+      showToast(err.message || 'Failed to place order. Please try again.', 'error');
+      setErrors((prev) => ({ ...prev, submit: err.message }));
       setIsSubmitting(false);
-      navigate('/orders');
-    }, 600);
+    }
+  };
+
+  const handleRetryPayment = () => {
+    handlePlaceOrder();
+  };
+
+  const handleClosePaymentModal = () => {
+    setPaymentModal({
+      isOpen: false,
+      state: PAYMENT_STATES.IDLE,
+      paymentId: null,
+      errorMessage: ''
+    });
+    setIsSubmitting(false);
   };
 
   return (
     <div className="checkout-page container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
+      {/* Payment Processing & Outcome Modal */}
+      <PaymentModal
+        isOpen={paymentModal.isOpen}
+        state={paymentModal.state}
+        paymentMethod={selectedPaymentMethod}
+        orderTotal={grandTotal}
+        paymentId={paymentModal.paymentId}
+        errorMessage={paymentModal.errorMessage}
+        onRetry={handleRetryPayment}
+        onCancel={handleClosePaymentModal}
+        onSuccessDone={() => navigate('/orders')}
+      />
+
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
         <Link
@@ -134,7 +394,7 @@ export default function CheckoutPage() {
           Express Grocery Checkout
         </h1>
         <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-          Confirm your delivery address and schedule your contactless drop-off.
+          Confirm your delivery address, schedule drop-off, and choose your payment method.
         </p>
       </div>
 
@@ -400,61 +660,20 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* 4. Payment Placeholder */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '16px',
-                border: '1px solid #e2e8f0',
-                padding: '1.75rem',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+            {/* 4. Payment Options */}
+            <PaymentSection
+              selectedMethod={selectedPaymentMethod}
+              onSelectMethod={(method) => {
+                setSelectedPaymentMethod(method);
+                if (errors.paymentMethod) setErrors((prev) => ({ ...prev, paymentMethod: null }));
               }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                  4. Payment Options
-                </h2>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', backgroundColor: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                  Mock Prototype
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
-                  { id: 'Cash on Delivery (COD)', label: 'Cash on Delivery / Pay on Drop', icon: <Banknote size={18} /> },
-                  { id: 'UPI / Google Pay / PhonePe', label: 'UPI / QR Scan on Delivery (Instant)', icon: <Smartphone size={18} /> },
-                  { id: 'Credit / Debit Card (Mock)', label: 'Credit / Debit Card (Mock Test)', icon: <CreditCard size={18} /> }
-                ].map((opt) => (
-                  <label
-                    key={opt.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.85rem 1rem',
-                      borderRadius: '10px',
-                      border: formData.paymentMethod === opt.id ? '2px solid #059669' : '1px solid #e2e8f0',
-                      backgroundColor: formData.paymentMethod === opt.id ? '#ecfdf5' : '#ffffff',
-                      cursor: 'pointer',
-                      fontWeight: formData.paymentMethod === opt.id ? 700 : 500
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={opt.id}
-                      checked={formData.paymentMethod === opt.id}
-                      onChange={handleChange}
-                      style={{ accentColor: '#059669', width: '18px', height: '18px' }}
-                    />
-                    <span style={{ color: formData.paymentMethod === opt.id ? '#059669' : '#64748b' }}>
-                      {opt.icon}
-                    </span>
-                    <span>{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+              orderTotal={grandTotal}
+              paymentDetails={paymentDetails}
+              onPaymentDetailsChange={setPaymentDetails}
+              simulationOutcome={simulationOutcome}
+              onSimulationOutcomeChange={setSimulationOutcome}
+              validationErrors={errors}
+            />
           </div>
 
           {/* Right Column: Order Summary & Action */}
@@ -487,7 +706,7 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {/* Pricing Details */}
+            {/* Payment Summary Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
                 <span>Subtotal</span>
@@ -496,13 +715,13 @@ export default function CheckoutPage() {
 
               {discountSavings > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
-                  <span>Total Discount</span>
-                  <span style={{ fontWeight: 700 }}>- ₹{discountSavings}</span>
+                  <span>Discount</span>
+                  <span style={{ fontWeight: 700 }}>-₹{discountSavings}</span>
                 </div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                <span>Delivery Charge</span>
+                <span>Delivery</span>
                 <span>
                   {deliveryFee === 0 ? (
                     <strong style={{ color: '#059669' }}>FREE</strong>
@@ -522,8 +741,28 @@ export default function CheckoutPage() {
                   alignItems: 'baseline'
                 }}
               >
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Total Amount</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Total</span>
                 <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#059669' }}>₹{grandTotal}</span>
+              </div>
+
+              {/* Selected Payment Method Indicator */}
+              <div
+                style={{
+                  marginTop: '0.35rem',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.82rem'
+                }}
+              >
+                <span style={{ color: '#64748b' }}>Payment Method:</span>
+                <span style={{ fontWeight: 800, color: '#059669' }}>
+                  {selectedPaymentMethod}
+                </span>
               </div>
             </div>
 
@@ -564,20 +803,22 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Place Order CTA */}
+            {/* Dynamic Place Order / Pay CTA Button */}
             <Button
               type="submit"
               variant="primary"
               size="lg"
               fullWidth
-              disabled={isSubmitting}
+              disabled={isSubmitting || paymentModal.state === PAYMENT_STATES.PROCESSING}
               icon={<CheckCircle2 size={18} />}
             >
-              {isSubmitting
-                ? 'Placing Your Order...'
+              {isSubmitting || paymentModal.state === PAYMENT_STATES.PROCESSING
+                ? 'Processing...'
                 : !selectedLocation
                 ? 'Select Delivery Location to Place Order'
-                : `Place Order • ₹${grandTotal}`}
+                : selectedPaymentMethod === PAYMENT_METHODS.COD
+                ? 'Place COD Order'
+                : `Pay ₹${grandTotal}`}
             </Button>
 
             <div style={{ marginTop: '1rem', fontSize: '0.78rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>

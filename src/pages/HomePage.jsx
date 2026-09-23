@@ -1,17 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { categories } from '../data/categories';
-import { products } from '../data/products';
+import { useCatalog } from '../context/CatalogContext';
 import CategoryCard from '../components/category/CategoryCard';
 import ProductGrid from '../components/product/ProductGrid';
-import { ArrowRight, Sparkles, Zap, ShieldCheck, Truck, Percent, Gift, MapPin } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, ShieldCheck, Truck, Percent, Gift, MapPin, RefreshCw, AlertCircle, Package } from 'lucide-react';
 import { useDeliveryLocation } from '../context/LocationContext';
 
 export default function HomePage() {
   const { selectedLocation, openLocationModal } = useDeliveryLocation();
-  const popularProducts = products.filter((p) => p.isPopular).slice(0, 8);
-  const dealProducts = products.filter((p) => p.isDeal).slice(0, 8);
-  const householdProducts = products.filter((p) => p.isHousehold).slice(0, 6);
+  const { categories, products, loading, error, loadInitialData } = useCatalog();
+
+  const activeProducts = products.filter((p) => p.active !== false);
+  const popularProducts = activeProducts.slice(0, 8);
+  const dealProducts = activeProducts.filter((p) => p.isDeal || p.discountPercentage > 0).length > 0
+    ? activeProducts.filter((p) => p.isDeal || p.discountPercentage > 0).slice(0, 8)
+    : activeProducts.slice(0, 8);
+  const householdProducts = activeProducts.filter((p) => p.isHousehold).length > 0
+    ? activeProducts.filter((p) => p.isHousehold).slice(0, 6)
+    : activeProducts.slice(2, 8);
 
   return (
     <div className="home-page">
@@ -254,13 +260,71 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="container" style={{ marginTop: '3.5rem' }}>
+      <div className="container" style={{ marginTop: '2.5rem' }}>
+        {/* Backend Error Banner */}
+        {error && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              padding: '1.25rem 1.5rem',
+              borderRadius: '16px',
+              gap: '1rem',
+              marginBottom: '2.5rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <AlertCircle size={24} color="#ef4444" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1rem' }}>Unable to connect to Grocery Choice server.</div>
+                <div style={{ fontSize: '0.85rem', color: '#b91c1c', marginTop: '0.2rem' }}>
+                  Please check your connection or ensure the Grocery Choice backend server is reachable.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={loadInitialData}
+              className="btn btn-secondary btn-sm"
+              style={{ fontWeight: 700 }}
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
+
+        {/* Catalog Loading State */}
+        {loading && (
+          <div style={{ padding: '3rem 1rem', textAlign: 'center', marginBottom: '2.5rem' }}>
+            <RefreshCw size={36} color="#059669" className="spin" style={{ margin: '0 auto 1rem', animation: 'spin 1s linear infinite' }} />
+            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.1rem' }}>
+              Loading fresh grocery catalog from server...
+            </div>
+          </div>
+        )}
+
+        {/* Empty Catalog State */}
+        {!loading && !error && categories.length === 0 && products.length === 0 && (
+          <div style={{ padding: '3.5rem 1rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1', marginBottom: '2.5rem' }}>
+            <Package size={40} color="#94a3b8" style={{ margin: '0 auto 1rem' }} />
+            <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#0f172a' }}>Catalog is Currently Empty</div>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+              Items published in the Owner Portal will appear here in real time.
+            </p>
+          </div>
+        )}
+
         {/* Shop by Category Section */}
         <section aria-labelledby="cat-heading" style={{ marginBottom: '4rem' }}>
           <div className="section-header">
             <div className="section-title-wrap">
               <h2 id="cat-heading">Shop by Category</h2>
-              <p className="section-subtitle">Explore all 8 fresh departments curated for everyday living</p>
+              <p className="section-subtitle">Explore fresh departments curated for everyday living ({categories.length} available)</p>
             </div>
             <Link to="/categories" className="view-all-link">
               <span>View All Categories</span>

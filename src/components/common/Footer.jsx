@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../../assets/Logo';
 import { ShieldCheck, Truck, RotateCcw, Award, Mail, Phone, MapPin } from 'lucide-react';
-import { categories } from '../../data/categories';
+import { useCatalog } from '../../context/CatalogContext';
 
 export default function Footer() {
+  const { categories } = useCatalog();
+
   return (
     <footer className="app-footer">
       <div className="container">
@@ -101,6 +103,7 @@ export default function Footer() {
               ))}
             </ul>
           </div>
+
 
           {/* Service Commitment & Hours */}
           <div>

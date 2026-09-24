@@ -110,6 +110,7 @@ export function LocationProvider({ children }) {
         });
 
         setConfirmationMessage('Location selected using your device GPS coordinates.');
+        closeLocationModal();
       },
       (error) => {
         setIsDetecting(false);

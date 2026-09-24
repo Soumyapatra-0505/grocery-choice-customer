@@ -11,7 +11,6 @@ import {
   PAYMENT_METHODS,
   PAYMENT_STATES,
   isCodEligible,
-  simulateGatewayPayment,
   validateUpiId,
   validateCardDetails,
   COD_MAX_AMOUNT
@@ -29,6 +28,40 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const { selectedLocation, openLocationModal } = useDeliveryLocation();
   const navigate = useNavigate();
+
+  // Safely resolve delivery location (context state or safe recovery from localStorage during hydration)
+  const resolveActiveLocation = () => {
+    if (selectedLocation) return selectedLocation;
+    try {
+      const saved = localStorage.getItem('grocery_choice_location');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.selectedLocation) return parsed.selectedLocation;
+      }
+    } catch {
+      // Ignore recovery errors
+    }
+    return null;
+  };
+
+  const activeLocation = resolveActiveLocation();
+
+  // Validate that location has either a real saved addressId or valid GPS coordinates or formatted address
+  const isLocationValid = (loc) => {
+    if (!loc || typeof loc !== 'object') return false;
+    if (loc.type === 'geolocation') {
+      const lat = Number(loc.latitude);
+      const lng = Number(loc.longitude);
+      return Number.isFinite(lat) && Number.isFinite(lng);
+    }
+    return Boolean(
+      loc.addressId ||
+      loc.id ||
+      loc.formattedAddress ||
+      loc.compactDisplay ||
+      (loc.city && loc.pincode)
+    );
+  };
 
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
@@ -198,7 +231,8 @@ export default function CheckoutPage() {
     const newErrors = {};
     if (!formData.fullName.trim()) newErrors.fullName = 'Please enter your full name';
     if (!formData.phone.trim()) newErrors.phone = 'Please enter your mobile phone number';
-    if (!selectedLocation) {
+    const currentLocation = resolveActiveLocation();
+    if (!isLocationValid(currentLocation)) {
       newErrors.location = 'Please select a delivery location before placing your order';
       showToast('Please select a delivery location before placing your order', 'error');
     }
@@ -242,12 +276,18 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
 
+    const currentLocation = resolveActiveLocation();
+    const effectiveAddressId =
+      currentLocation?.type === 'geolocation'
+        ? null
+        : (currentLocation?.addressId || null);
+
     const backendPayload = {
-      customerId: 1,
-      addressId: 1,
-      deliveryAddressText: selectedLocation
-        ? `${formData.fullName}, ${selectedLocation.formattedAddress || selectedLocation.compactDisplay || 'Standard Area'}, Phone: ${formData.phone}`
-        : 'Flat 402, Green Glen Apartments, Sector 14 Hub, Gurugram',
+      customerId: user?.id || 1,
+      addressId: effectiveAddressId,
+      deliveryAddressText: currentLocation
+        ? `${formData.fullName}, ${currentLocation.formattedAddress || currentLocation.compactDisplay}, Phone: ${formData.phone}`
+        : '',
       items: cartItems.map((item) => ({
         productId: Number(item.id),
         quantity: item.quantity
@@ -481,7 +521,7 @@ export default function CheckoutPage() {
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
                   2. Delivery Location
                 </h2>
-                {selectedLocation && (
+                {activeLocation && (
                   <button
                     type="button"
                     onClick={() => openLocationModal('select')}
@@ -492,7 +532,7 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              {selectedLocation ? (
+              {activeLocation ? (
                 <div
                   style={{
                     backgroundColor: '#ecfdf5',
@@ -531,15 +571,15 @@ export default function CheckoutPage() {
                             borderRadius: '6px'
                           }}
                         >
-                          {selectedLocation.label || (selectedLocation.type === 'geolocation' ? 'GPS Location' : 'Home')}
+                          {activeLocation.label || (activeLocation.type === 'geolocation' ? 'GPS Location' : 'Home')}
                         </span>
                         <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#065f46' }}>
-                          {selectedLocation.compactDisplay}
+                          {activeLocation.compactDisplay}
                         </span>
                       </div>
 
                       <p style={{ fontSize: '0.92rem', color: '#1e293b', lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
-                        {selectedLocation.formattedAddress}
+                        {activeLocation.formattedAddress}
                       </p>
                     </div>
                   </div>
@@ -772,19 +812,19 @@ export default function CheckoutPage() {
                 marginBottom: '1.25rem',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '10px',
-                backgroundColor: selectedLocation ? '#ecfdf5' : '#fffbeb',
-                border: selectedLocation ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                backgroundColor: activeLocation ? '#ecfdf5' : '#fffbeb',
+                border: activeLocation ? '1px solid #a7f3d0' : '1px solid #fde68a',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
                 fontSize: '0.82rem'
               }}
             >
-              <MapPin size={16} color={selectedLocation ? '#059669' : '#b45309'} style={{ flexShrink: 0 }} />
+              <MapPin size={16} color={activeLocation ? '#059669' : '#b45309'} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selectedLocation ? (
+                {activeLocation ? (
                   <span>
-                    Delivering to <strong style={{ color: '#065f46' }}>{selectedLocation.compactDisplay}</strong>
+                    Delivering to <strong style={{ color: '#065f46' }}>{activeLocation.compactDisplay}</strong>
                   </span>
                 ) : (
                   <span style={{ color: '#b45309', fontWeight: 700 }}>
@@ -792,7 +832,7 @@ export default function CheckoutPage() {
                   </span>
                 )}
               </div>
-              {!selectedLocation && (
+              {!activeLocation && (
                 <button
                   type="button"
                   onClick={() => openLocationModal('select')}
@@ -814,7 +854,7 @@ export default function CheckoutPage() {
             >
               {isSubmitting || paymentModal.state === PAYMENT_STATES.PROCESSING
                 ? 'Processing...'
-                : !selectedLocation
+                : !activeLocation
                 ? 'Select Delivery Location to Place Order'
                 : selectedPaymentMethod === PAYMENT_METHODS.COD
                 ? 'Place COD Order'

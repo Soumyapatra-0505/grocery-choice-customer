@@ -11,8 +11,7 @@ import {
   LogOut,
   LogIn,
   Menu,
-  X,
-  Sparkles
+  X
 } from 'lucide-react';
 
 export default function Header() {
@@ -32,13 +31,11 @@ export default function Header() {
     <>
       {/* Top Announcement Ribbon */}
       <div className="top-announcement">
-        <span>⚡ Superfast 15-30 Min Delivery in Gurugram &amp; NCR</span>
+        <span>⚡ Superfast 15–30 Min Delivery Near You</span>
         <span style={{ opacity: 0.6 }}>•</span>
-        <span>🎉 Free Delivery on orders over ₹499</span>
+        <span>🎉 Free Delivery on Orders Over ₹199</span>
         <span style={{ opacity: 0.6 }}>•</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <Sparkles size={13} /> 100% Quality Guaranteed
-        </span>
+        <span>✨ 100% Quality Guaranteed</span>
       </div>
 
       <header className="app-header">

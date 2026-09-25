@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext();
 
 const CART_STORAGE_KEY = 'grocery_choice_cart';
-const FREE_DELIVERY_THRESHOLD = 500;
+const FREE_DELIVERY_THRESHOLD = 199;
 const STANDARD_DELIVERY_FEE = 40;
 
 export function CartProvider({ children }) {
@@ -138,7 +138,7 @@ export function CartProvider({ children }) {
 
   const grandTotal = totalItems > 0 ? subtotal + deliveryFee : 0;
 
-  const amountNeededForFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
+  const amountNeededForFreeDelivery = Math.max(0, Math.round((FREE_DELIVERY_THRESHOLD - subtotal) * 100) / 100);
 
   const value = {
     cartItems,

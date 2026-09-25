@@ -127,7 +127,7 @@ export default function HomePage() {
                   marginBottom: '2rem'
                 }}
               >
-                Shop farm-fresh fruits, crispy vegetables, dairy, grains, snacks, and daily household essentials with guaranteed best prices and zero delivery fees over ₹499.
+                Shop farm-fresh fruits, crispy vegetables, dairy, grains, snacks, and daily household essentials with guaranteed best prices and zero delivery fees over ₹199.
               </p>
 
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -253,7 +253,7 @@ export default function HomePage() {
                   <Gift size={20} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Free Delivery</div>
-                <div style={{ fontSize: '0.82rem', color: '#d1fae5' }}>Zero shipping cost on all orders above ₹499.</div>
+                <div style={{ fontSize: '0.82rem', color: '#d1fae5' }}>Zero shipping cost on all orders above ₹199.</div>
               </div>
             </div>
           </div>

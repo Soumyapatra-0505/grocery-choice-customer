@@ -9,26 +9,16 @@ const TOKEN_STORAGE_KEY = 'grocery_choice_token';
 const ORDERS_STORAGE_KEY = 'grocery_choice_orders';
 
 export function AuthProvider({ children }) {
-  // Saved user or initial customer preview
+  // Restore saved authenticated user session ONLY when both token and user profile exist
   const [user, setUser] = useState(() => {
     try {
-      const saved = localStorage.getItem(USER_STORAGE_KEY);
-      return saved
-        ? JSON.parse(saved)
-        : {
-            isLoggedIn: true,
-            id: 1,
-            fullName: 'Rahul Sharma',
-            email: 'rahul.sharma@example.com',
-            phone: '+91 98765 43210',
-            role: 'ROLE_CUSTOMER',
-            address: {
-              street: 'Flat 402, Green Meadows Residency, Sector 14',
-              city: 'Gurugram',
-              state: 'Haryana',
-              pincode: '122001'
-            }
-          };
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_STORAGE_KEY) : null;
+      if (token && saved) {
+        const parsed = JSON.parse(saved);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -206,9 +196,12 @@ export function AuthProvider({ children }) {
     return newOrder;
   };
 
+  const hasToken = typeof localStorage !== 'undefined' ? Boolean(localStorage.getItem(TOKEN_STORAGE_KEY)) : false;
+  const isLoggedIn = Boolean(user && user.isLoggedIn && hasToken);
+
   const value = {
     user,
-    isLoggedIn: !!user?.isLoggedIn,
+    isLoggedIn,
     login,
     loginWithOtp,
     register,

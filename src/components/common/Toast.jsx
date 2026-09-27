@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 export default function Toast() {
@@ -10,6 +10,7 @@ export default function Toast() {
   const icons = {
     success: <CheckCircle2 size={18} color="#34d399" />,
     error: <AlertCircle size={18} color="#f87171" />,
+    warning: <AlertTriangle size={18} color="#fbbf24" />,
     info: <Info size={18} color="#60a5fa" />,
   };
 

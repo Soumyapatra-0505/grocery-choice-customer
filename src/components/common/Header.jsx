@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../assets/Logo';
 import SearchBar from './SearchBar';
 import LocationSelector from '../location/LocationSelector';
@@ -19,7 +19,58 @@ export default function Header() {
   const { user, isLoggedIn, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const prevPathnameRef = useRef(location.pathname);
+
+  // Close profile and mobile dropdowns automatically on route change
+  useEffect(() => {
+    if (prevPathnameRef.current !== location.pathname) {
+      prevPathnameRef.current = location.pathname;
+      setUserDropdownOpen(false);
+      setMobileMenuOpen(false);
+    }
+  }, [location.pathname]);
+
+  // Handle clicking outside the profile dropdown or pressing Escape
+  useEffect(() => {
+    if (!userDropdownOpen) return;
+
+    const handleOutsideInteraction = (event) => {
+      if (!userDropdownRef.current) return;
+      const target = event.target;
+      const path = event.composedPath ? event.composedPath() : [];
+      if (!userDropdownRef.current.contains(target) && !path.includes(userDropdownRef.current)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.PointerEvent) {
+      document.addEventListener('pointerdown', handleOutsideInteraction);
+    } else {
+      document.addEventListener('mousedown', handleOutsideInteraction);
+      document.addEventListener('touchstart', handleOutsideInteraction);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      if (typeof window !== 'undefined' && window.PointerEvent) {
+        document.removeEventListener('pointerdown', handleOutsideInteraction);
+      } else {
+        document.removeEventListener('mousedown', handleOutsideInteraction);
+        document.removeEventListener('touchstart', handleOutsideInteraction);
+      }
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [userDropdownOpen]);
 
   const handleLogout = () => {
     logout();
@@ -72,13 +123,13 @@ export default function Header() {
             {/* Action Buttons */}
             <div className="header-actions">
               {/* Account Dropdown */}
-              <div style={{ position: 'relative' }}>
+              <div ref={userDropdownRef} style={{ position: 'relative' }}>
                 {isLoggedIn ? (
                   <>
                     <button
                       type="button"
                       className="action-item"
-                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                      onClick={() => setUserDropdownOpen((prev) => !prev)}
                       aria-expanded={userDropdownOpen}
                       aria-haspopup="true"
                     >
@@ -103,6 +154,7 @@ export default function Header() {
 
                     {userDropdownOpen && (
                       <div
+                        className="user-dropdown-menu"
                         style={{
                           position: 'absolute',
                           top: 'calc(100% + 8px)',

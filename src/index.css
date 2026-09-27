@@ -709,6 +709,9 @@ button, a.nav-link, a.btn, input[type="submit"] {
 .toast.toast-error {
   border-left-color: var(--accent-red);
 }
+.toast.toast-warning {
+  border-left-color: #fbbf24;
+}
 .toast.toast-info {
   border-left-color: var(--accent-blue);
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 const CartContext = createContext();
 
@@ -18,6 +18,7 @@ export function CartProvider({ children }) {
   });
 
   const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -27,16 +28,55 @@ export function CartProvider({ children }) {
     }
   }, [cartItems]);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type, id: Date.now() });
-    setTimeout(() => {
-      setToast((prev) => (prev?.id === toast?.id ? null : prev));
-    }, 2800);
-  };
+  // Clean up any active toast timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+    };
+  }, []);
 
-  const closeToast = () => {
+  const closeToast = useCallback(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
     setToast(null);
-  };
+  }, []);
+
+  const showToast = useCallback((message, type = 'success') => {
+    // Clear any previous active timer so stale timers never dismiss newer toasts
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+
+    const toastId = Date.now() + Math.random();
+    setToast({ message, type, id: toastId });
+
+    // Success and info auto-dismiss after ~3s; warning/error after 4s
+    const autoDismissDelay = (type === 'error' || type === 'warning') ? 4000 : 3000;
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast((prev) => (prev?.id === toastId ? null : prev));
+      toastTimerRef.current = null;
+    }, autoDismissDelay);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__showToast = showToast;
+      window.__closeToast = closeToast;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete window.__showToast;
+        delete window.__closeToast;
+      }
+    };
+  }, [showToast, closeToast]);
 
   const addToCart = (product, quantity = 1) => {
     const stockQty = Number(product.stockQuantity !== undefined ? product.stockQuantity : product.stockCount !== undefined ? product.stockCount : 99);

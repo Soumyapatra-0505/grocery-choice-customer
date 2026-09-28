@@ -176,6 +176,15 @@ export default function OrderCard({ order, onCancel, isCancelling }) {
         </div>
       </div>
 
+      {/* Delivery Address Snippet */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem', padding: '0.4rem 0.6rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+        <MapPin size={13} color="#059669" style={{ flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, color: '#475569' }}>Deliver to:</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {order.deliveryAddressText || order.address?.street || 'Standard Delivery Address'}
+        </span>
+      </div>
+
       {/* Expanded Details */}
       {expanded && (
         <div

@@ -19,6 +19,12 @@ export default function ProductCard({ product }) {
     }
   };
 
+  const discountPercent = product.discountPercentage > 0
+    ? product.discountPercentage
+    : (product.originalPrice && product.discountPrice && product.originalPrice > product.discountPrice
+        ? Math.round(((product.originalPrice - product.discountPrice) / product.originalPrice) * 100)
+        : 0);
+
   return (
     <article className="product-card" aria-label={product.name}>
       <Link to={`/product/${product.id}`} className="product-image-wrap" tabIndex={-1}>
@@ -31,9 +37,9 @@ export default function ProductCard({ product }) {
 
         {/* Badges */}
         <div className="product-badges">
-          {product.discountPercentage > 0 && (
+          {discountPercent > 0 && (
             <span className="badge-discount">
-              {product.discountPercentage}% OFF
+              {discountPercent}% OFF
             </span>
           )}
 
@@ -41,14 +47,14 @@ export default function ProductCard({ product }) {
             <span className="stock-tag stock-out" role="status">Out of Stock</span>
           ) : isLowStock ? (
             <span className="stock-tag stock-low" role="status">Only {product.stockCount} left</span>
-          ) : (
-            <span className="stock-tag stock-in" role="status">In Stock</span>
-          )}
+          ) : null}
         </div>
       </Link>
 
       <div className="product-content">
-        <div className="product-category-tag">{product.categoryName}</div>
+        {product.categoryName && (
+          <div className="product-category-tag">{product.categoryName}</div>
+        )}
 
         <h3 className="product-title">
           <Link to={`/product/${product.id}`} title={product.name}>
@@ -56,19 +62,25 @@ export default function ProductCard({ product }) {
           </Link>
         </h3>
 
-        <div className="product-unit">{product.unit}</div>
+        <div className="product-unit">{product.unit || '1 unit'}</div>
 
-        <div className="product-rating">
-          <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
-          <span>{product.rating}</span>
-          <span style={{ color: '#94a3b8', fontWeight: 500 }}>({product.reviewCount})</span>
-        </div>
+        {product.rating && (
+          <div className="product-rating">
+            <Star size={13} fill="#f59e0b" stroke="#f59e0b" />
+            <span>{product.rating}</span>
+            {product.reviewCount && (
+              <span style={{ color: '#94a3b8', fontWeight: 500, fontSize: '0.72rem' }}>
+                ({product.reviewCount})
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="product-bottom-row">
           <div className="product-price-box">
             <div className="price-current">₹{product.discountPrice}</div>
             {product.originalPrice > product.discountPrice && (
-              <div className="price-original">₹{product.originalPrice}</div>
+              <div className="price-original">MRP ₹{product.originalPrice}</div>
             )}
           </div>
 
@@ -78,9 +90,18 @@ export default function ProductCard({ product }) {
                 type="button"
                 disabled
                 className="btn btn-outline"
-                style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', minHeight: '36px', opacity: 0.6 }}
+                style={{
+                  padding: '0.35rem 0.65rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  minHeight: '34px',
+                  borderRadius: '8px',
+                  opacity: 0.6,
+                  color: '#94a3b8',
+                  borderColor: '#cbd5e1'
+                }}
               >
-                Sold Out
+                Out of Stock
               </button>
             ) : cartQty > 0 ? (
               <QuantitySelector
@@ -96,15 +117,18 @@ export default function ProductCard({ product }) {
                 onClick={handleAdd}
                 className="btn btn-secondary"
                 style={{
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  minHeight: '36px',
-                  borderRadius: '8px'
+                  padding: '0.35rem 0.85rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  minHeight: '34px',
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
                 }}
                 aria-label={`Add ${product.name} to cart`}
               >
-                <Plus size={15} strokeWidth={2.5} />
+                <Plus size={15} strokeWidth={2.6} />
                 <span>ADD</span>
               </button>
             )}

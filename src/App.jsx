@@ -11,6 +11,7 @@ import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import Toast from './components/common/Toast';
 import LocationModal from './components/location/LocationModal';
+import MobileNav from './components/common/MobileNav';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -20,6 +21,7 @@ import ProductDetailsPage from './pages/ProductDetailsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
+import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 
@@ -55,6 +57,7 @@ export default function App() {
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/orders" element={<MyOrdersPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   {/* Fallback route */}
@@ -65,6 +68,7 @@ export default function App() {
               <Footer />
               <Toast />
               <LocationModal />
+              <MobileNav />
             </div>
           </Router>
           </CartProvider>

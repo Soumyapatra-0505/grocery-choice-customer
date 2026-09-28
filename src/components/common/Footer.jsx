@@ -1,12 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../../assets/Logo';
-import { ShieldCheck, Truck, RotateCcw, Award, Mail, Phone, MapPin } from 'lucide-react';
-import { useCatalog } from '../../context/CatalogContext';
+import { ShieldCheck, Truck, RotateCcw, Award, Phone, Mail } from 'lucide-react';
 
 export default function Footer() {
-  const { categories } = useCatalog();
-
   return (
     <footer className="app-footer">
       <div className="container">
@@ -17,8 +14,8 @@ export default function Footer() {
               <Truck size={22} />
             </div>
             <div>
-              <div className="feature-title">Lightning Delivery</div>
-              <div className="feature-desc">Freshly harvested orders delivered in 15-30 minutes right to your kitchen.</div>
+              <div className="feature-title">⚡ Superfast Delivery</div>
+              <div className="feature-desc">Fresh groceries delivered in 15–30 minutes right to your doorstep.</div>
             </div>
           </div>
 
@@ -27,8 +24,8 @@ export default function Footer() {
               <Award size={22} />
             </div>
             <div>
-              <div className="feature-title">100% Quality Choice</div>
-              <div className="feature-desc">Hand-sorted produce, certified organic staples, and rigorous freshness checks.</div>
+              <div className="feature-title">🎉 Free Delivery on ₹199+</div>
+              <div className="feature-desc">Enjoy free doorstep delivery on all eligible orders over ₹199.</div>
             </div>
           </div>
 
@@ -37,8 +34,8 @@ export default function Footer() {
               <RotateCcw size={22} />
             </div>
             <div>
-              <div className="feature-title">No-Questions Return</div>
-              <div className="feature-desc">Instant refund or replacement right at your doorstep if you are not delighted.</div>
+              <div className="feature-title">✨ 100% Quality Guaranteed</div>
+              <div className="feature-desc">Freshly harvested fruits, dairy, and farm produce inspected for purity.</div>
             </div>
           </div>
 
@@ -47,88 +44,86 @@ export default function Footer() {
               <ShieldCheck size={22} />
             </div>
             <div>
-              <div className="feature-title">Secure &amp; Hygienic</div>
-              <div className="feature-desc">Sanitized eco-friendly packaging and temperature-controlled storage.</div>
+              <div className="feature-title">🔒 Verified &amp; Safe Checkout</div>
+              <div className="feature-desc">Secure UPI, Cards, Net Banking, and Cash on Delivery payments.</div>
             </div>
           </div>
         </div>
 
-        {/* Footer Navigation Columns */}
+        {/* 4 Professional Footer Columns */}
         <div className="footer-columns">
-          {/* Brand Info */}
+          {/* Column 1: Grocery Choice */}
           <div>
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
               <Logo size="medium" />
             </div>
-            <p style={{ fontSize: '0.88rem', lineHeight: 1.6, color: '#94a3b8', marginBottom: '1.5rem', maxWidth: '340px' }}>
-              Grocery Choice is your everyday neighborhood digital supermarket. We connect local farmers and trusted brands to bring wholesome, affordable food to every family.
+            <p style={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#94a3b8', marginBottom: '1.25rem' }}>
+              Grocery Choice is your trusted online neighborhood grocery supermarket. Fresh essentials, farm-picked produce, dairy, and household goods at honest prices.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.84rem', color: '#94a3b8' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Phone size={15} color="#34d399" />
-                <span>+91 1800-123-CHOICE (Toll Free)</span>
+            <ul className="footer-links">
+              <li><Link to="/products">About Us</Link></li>
+              <li><a href="mailto:care@grocerychoice.com">Contact Us</a></li>
+              <li><span style={{ cursor: 'pointer', color: '#94a3b8' }}>Careers</span></li>
+            </ul>
+          </div>
+
+          {/* Column 2: Customer Support */}
+          <div>
+            <h3 className="footer-heading">Customer Support</h3>
+            <ul className="footer-links">
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Help Center</span></li>
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Delivery Information</span></li>
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Returns &amp; Refunds</span></li>
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Payment Information</span></li>
+            </ul>
+            <div style={{ marginTop: '1.25rem', fontSize: '0.82rem', color: '#94a3b8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                <Phone size={14} color="#34d399" />
+                <span>1800-123-CHOICE (Toll-Free)</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Mail size={15} color="#34d399" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Mail size={14} color="#34d399" />
                 <span>care@grocerychoice.com</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <MapPin size={15} color="#34d399" />
-                <span>Sector 14 Hub, Gurugram, NCR 122001</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Column 3: Quick Links */}
           <div>
             <h3 className="footer-heading">Quick Links</h3>
             <ul className="footer-links">
-              <li><Link to="/">Home</Link></li>
-              <li><Link to="/categories">All Categories</Link></li>
-              <li><Link to="/products">Browse All Products</Link></li>
-              <li><Link to="/products?deal=true">Hot Deals &amp; Discounts</Link></li>
-              <li><Link to="/cart">My Shopping Cart</Link></li>
-              <li><Link to="/orders">Track My Orders</Link></li>
+              <li><Link to="/categories">Categories</Link></li>
+              <li><Link to="/orders">My Orders</Link></li>
+              <li><Link to="/profile">My Account</Link></li>
+              <li><Link to="/cart">Cart</Link></li>
+              <li><Link to="/products">All Groceries</Link></li>
             </ul>
           </div>
 
-          {/* Top Departments */}
+          {/* Column 4: Legal */}
           <div>
-            <h3 className="footer-heading">Top Categories</h3>
+            <h3 className="footer-heading">Legal</h3>
             <ul className="footer-links">
-              {categories.slice(0, 6).map((cat) => (
-                <li key={cat.id}>
-                  <Link to={`/products?category=${cat.id}`}>{cat.name}</Link>
-                </li>
-              ))}
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Privacy Policy</span></li>
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Terms &amp; Conditions</span></li>
+              <li><span style={{ cursor: 'pointer', color: '#cbd5e1' }}>Cancellation &amp; Refund Policy</span></li>
             </ul>
-          </div>
-
-
-          {/* Service Commitment & Hours */}
-          <div>
-            <h3 className="footer-heading">Service Hours</h3>
-            <p style={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#94a3b8', marginBottom: '1rem' }}>
-              Open every single day from <strong style={{ color: 'white' }}>6:00 AM to 11:30 PM</strong>. Orders placed late are scheduled for early morning delivery.
-            </p>
-            <div style={{ backgroundColor: '#1e293b', padding: '1rem', borderRadius: '10px', border: '1px solid #334155' }}>
-              <div style={{ fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>Zero Waste Initiative 🌿</div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                Hand your cloth delivery bags back to our rider for a ₹10 cashback credit!
+            <div style={{ marginTop: '1.25rem', backgroundColor: '#1e293b', padding: '0.85rem', borderRadius: '10px', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 700 }}>FSSAI Certified</div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                Lic. No. 10821001000452 • 100% Quality &amp; Hygiene Assured
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer Bottom Strip */}
+        {/* Footer Bottom: © Grocery Choice & Tagline */}
         <div className="footer-bottom">
-          <div>
-            &copy; {new Date().getFullYear()} Grocery Choice Inc. All rights reserved. Built with pride for fresh living.
+          <div style={{ fontWeight: 600 }}>
+            &copy; {new Date().getFullYear()} Grocery Choice. All rights reserved.
           </div>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>FSSAI Lic. #10821001000452</span>
+          <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.9rem' }}>
+            &ldquo;Quality groceries. Better choice.&rdquo;
           </div>
         </div>
       </div>

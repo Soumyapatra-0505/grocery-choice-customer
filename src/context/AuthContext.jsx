@@ -46,6 +46,8 @@ export function AuthProvider({ children }) {
               fullName: profile.fullName || prev?.fullName,
               email: profile.email || prev?.email,
               phone: profile.phone || prev?.phone,
+              gender: profile.gender !== undefined ? profile.gender : prev?.gender,
+              dateOfBirth: profile.dateOfBirth !== undefined ? profile.dateOfBirth : prev?.dateOfBirth,
               role: profile.role || 'ROLE_CUSTOMER',
               isLoggedIn: true
             }));
@@ -95,14 +97,28 @@ export function AuthProvider({ children }) {
       const phone = u.phone || '';
       const role = u.role || 'ROLE_CUSTOMER';
 
+      const savedAvatar =
+        (u && u.profilePicture) ||
+        (phone && localStorage.getItem(`grocery_choice_avatar_${phone}`)) ||
+        (email && localStorage.getItem(`grocery_choice_avatar_${email}`)) ||
+        (id && localStorage.getItem(`grocery_choice_avatar_${id}`)) ||
+        localStorage.getItem('grocery_choice_avatar_default') ||
+        null;
+
+      const gender = u.gender !== undefined ? u.gender : (user?.gender || null);
+      const dateOfBirth = u.dateOfBirth !== undefined ? u.dateOfBirth : (user?.dateOfBirth || null);
+
       targetUser = {
         id,
         fullName,
         email,
         phone,
+        gender,
+        dateOfBirth,
         role,
         isLoggedIn: true,
         authMethod: phone ? 'mobile_otp' : 'email_otp',
+        profilePicture: savedAvatar,
         address: u.address || user?.address || {
           street: 'Flat 402, Green Meadows Residency, Sector 14',
           city: 'Gurugram',
@@ -122,14 +138,23 @@ export function AuthProvider({ children }) {
         : trimmed;
       const displayName = name || (isPhone ? `Customer ${digitsOnly.slice(-4)}` : trimmed.split('@')[0]);
 
+      const savedAvatar =
+        localStorage.getItem(`grocery_choice_avatar_${cleanPhone}`) ||
+        localStorage.getItem(`grocery_choice_avatar_${cleanEmail}`) ||
+        localStorage.getItem('grocery_choice_avatar_default') ||
+        null;
+
       targetUser = {
         id: user?.id || 1,
         isLoggedIn: true,
         fullName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
         email: cleanEmail,
         phone: cleanPhone,
+        gender: user?.gender || null,
+        dateOfBirth: user?.dateOfBirth || null,
         role: 'ROLE_CUSTOMER',
         authMethod: isPhone ? 'mobile_otp' : 'email_otp',
+        profilePicture: savedAvatar,
         address: user?.address || {
           street: 'Flat 402, Green Meadows Residency, Sector 14',
           city: 'Gurugram',
@@ -196,6 +221,70 @@ export function AuthProvider({ children }) {
     return newOrder;
   };
 
+  const updateUserProfile = (updatedFields) => {
+    try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
+      if (token) {
+        const payload = {};
+        if (updatedFields.fullName !== undefined) payload.fullName = updatedFields.fullName;
+        if (updatedFields.email !== undefined) payload.email = updatedFields.email;
+        if (updatedFields.phone !== undefined) payload.phone = updatedFields.phone;
+        if (updatedFields.gender !== undefined) payload.gender = updatedFields.gender;
+        if (updatedFields.dateOfBirth !== undefined) payload.dateOfBirth = updatedFields.dateOfBirth;
+
+        if (Object.keys(payload).length > 0) {
+          authApi.updateProfile(payload).catch((err) => {
+            console.debug('Backend profile sync note:', err.message);
+          });
+        }
+      }
+    } catch (e) {
+      console.debug('Profile sync note:', e);
+    }
+
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = {
+        ...prev,
+        ...updatedFields
+      };
+
+      if (updatedFields.profilePicture !== undefined) {
+        const avatarKeys = [
+          prev.phone && `grocery_choice_avatar_${prev.phone}`,
+          prev.email && `grocery_choice_avatar_${prev.email}`,
+          prev.id && `grocery_choice_avatar_${prev.id}`,
+          'grocery_choice_avatar_default'
+        ].filter(Boolean);
+
+        if (updatedFields.profilePicture) {
+          avatarKeys.forEach((key) => {
+            try {
+              localStorage.setItem(key, updatedFields.profilePicture);
+            } catch (e) {
+              console.error('Failed to store avatar in localStorage', e);
+            }
+          });
+        } else {
+          avatarKeys.forEach((key) => {
+            try {
+              localStorage.removeItem(key);
+            } catch (e) {
+              console.error('Failed to remove avatar from localStorage', e);
+            }
+          });
+        }
+      }
+
+      try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to sync updated user to localStorage', e);
+      }
+      return updated;
+    });
+  };
+
   const hasToken = typeof localStorage !== 'undefined' ? Boolean(localStorage.getItem(TOKEN_STORAGE_KEY)) : false;
   const isLoggedIn = Boolean(user && user.isLoggedIn && hasToken);
 
@@ -206,6 +295,7 @@ export function AuthProvider({ children }) {
     loginWithOtp,
     register,
     logout,
+    updateUserProfile,
     orders,
     placeOrder
   };

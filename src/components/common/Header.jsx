@@ -10,14 +10,13 @@ import {
   Package,
   LogOut,
   LogIn,
-  Menu,
-  X
+  User,
+  CreditCard
 } from 'lucide-react';
 
 export default function Header() {
   const { totalItems, subtotal } = useCart();
   const { user, isLoggedIn, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -25,12 +24,11 @@ export default function Header() {
 
   const prevPathnameRef = useRef(location.pathname);
 
-  // Close profile and mobile dropdowns automatically on route change
+  // Close profile dropdown automatically on route change
   useEffect(() => {
     if (prevPathnameRef.current !== location.pathname) {
       prevPathnameRef.current = location.pathname;
       setUserDropdownOpen(false);
-      setMobileMenuOpen(false);
     }
   }, [location.pathname]);
 
@@ -80,7 +78,7 @@ export default function Header() {
 
   return (
     <>
-      {/* Top Announcement Ribbon */}
+      {/* Top Value / Trust Announcement Strip */}
       <div className="top-announcement">
         <span>⚡ Superfast 15–30 Min Delivery Near You</span>
         <span style={{ opacity: 0.6 }}>•</span>
@@ -92,35 +90,22 @@ export default function Header() {
       <header className="app-header">
         <div className="container">
           <div className="header-inner">
-            {/* Mobile Menu Trigger */}
-            <button
-              type="button"
-              className="mobile-menu-btn"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-              style={{
-                display: 'none',
-                padding: '0.4rem',
-                color: '#0f172a'
-              }}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-
-            {/* Brand Logo */}
-            <Link to="/" aria-label="Grocery Choice Home" style={{ display: 'inline-flex' }}>
+            {/* Brand Logo & Name */}
+            <Link to="/" aria-label="Grocery Choice Home" style={{ display: 'inline-flex', flexShrink: 0 }}>
               <Logo size="medium" />
             </Link>
 
-            {/* Delivery Location Selector */}
-            <LocationSelector className="header-location" />
+            {/* Delivery Location Selector (Desktop) */}
+            <div className="hide-on-mobile" style={{ flexShrink: 0 }}>
+              <LocationSelector className="header-location" />
+            </div>
 
-            {/* Central Search Bar */}
+            {/* Central Search Bar (Desktop) */}
             <div className="header-search">
               <SearchBar />
             </div>
 
-            {/* Action Buttons */}
+            {/* Right Action Buttons */}
             <div className="header-actions">
               {/* Account Dropdown */}
               <div ref={userDropdownRef} style={{ position: 'relative' }}>
@@ -132,6 +117,7 @@ export default function Header() {
                       onClick={() => setUserDropdownOpen((prev) => !prev)}
                       aria-expanded={userDropdownOpen}
                       aria-haspopup="true"
+                      style={{ padding: '0.45rem 0.75rem', borderRadius: '12px' }}
                     >
                       <div
                         style={{
@@ -143,13 +129,25 @@ export default function Header() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: '0.88rem'
+                          fontWeight: 800,
+                          fontSize: '0.88rem',
+                          overflow: 'hidden',
+                          border: '1.5px solid #a7f3d0'
                         }}
                       >
-                        {user.fullName ? user.fullName.charAt(0) : 'U'}
+                        {user?.profilePicture ? (
+                          <img
+                            src={user.profilePicture}
+                            alt={user.fullName || 'User'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
+                        )}
                       </div>
-                      <span className="hide-on-mobile">{user.fullName.split(' ')[0]}</span>
+                      <span className="hide-on-mobile" style={{ fontWeight: 700, fontSize: '0.88rem' }}>
+                        {user?.fullName ? user.fullName.split(' ')[0] : 'Profile'}
+                      </span>
                     </button>
 
                     {userDropdownOpen && (
@@ -159,31 +157,86 @@ export default function Header() {
                           position: 'absolute',
                           top: 'calc(100% + 8px)',
                           right: 0,
-                          width: '200px',
+                          width: '230px',
                           backgroundColor: '#ffffff',
-                          borderRadius: '12px',
-                          boxShadow: '0 10px 25px -4px rgba(15, 23, 42, 0.15)',
+                          borderRadius: '16px',
+                          boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.16)',
                           border: '1px solid #e2e8f0',
                           overflow: 'hidden',
-                          zIndex: 200
+                          zIndex: 300,
+                          animation: 'fadeIn 0.15s ease'
                         }}
                       >
-                        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9' }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{user.fullName}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{user.email}</div>
+                        <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: '#f8fafc' }}>
+                          <div
+                            style={{
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '50%',
+                              backgroundColor: '#ecfdf5',
+                              color: '#059669',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 800,
+                              fontSize: '0.95rem',
+                              overflow: 'hidden',
+                              border: '1.5px solid #a7f3d0',
+                              flexShrink: 0
+                            }}
+                          >
+                            {user?.profilePicture ? (
+                              <img
+                                src={user.profilePicture}
+                                alt={user.fullName || 'User'}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
+                            )}
+                          </div>
+                          <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                              {user.fullName || 'Customer'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                              {user.phone || user.email}
+                            </div>
+                          </div>
                         </div>
+
+                        <Link
+                          to="/profile"
+                          onClick={() => setUserDropdownOpen(false)}
+                          style={{
+                            padding: '0.7rem 1.1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.65rem',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            color: '#334155',
+                            transition: 'background-color 0.12s'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <User size={16} color="#059669" />
+                          <span>My Profile</span>
+                        </Link>
 
                         <Link
                           to="/orders"
                           onClick={() => setUserDropdownOpen(false)}
                           style={{
-                            padding: '0.65rem 1rem',
+                            padding: '0.7rem 1.1rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.6rem',
+                            gap: '0.65rem',
                             fontSize: '0.88rem',
+                            fontWeight: 600,
                             color: '#334155',
-                            transition: 'background-color 0.15s'
+                            transition: 'background-color 0.12s'
                           }}
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -192,20 +245,42 @@ export default function Header() {
                           <span>My Orders</span>
                         </Link>
 
+                        <Link
+                          to="/profile?tab=payments"
+                          onClick={() => setUserDropdownOpen(false)}
+                          style={{
+                            padding: '0.7rem 1.1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.65rem',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            color: '#334155',
+                            transition: 'background-color 0.12s'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <CreditCard size={16} color="#059669" />
+                          <span>Payment Methods</span>
+                        </Link>
+
                         <button
                           type="button"
                           onClick={handleLogout}
                           style={{
                             width: '100%',
-                            padding: '0.65rem 1rem',
+                            padding: '0.7rem 1.1rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.6rem',
+                            gap: '0.65rem',
                             fontSize: '0.88rem',
-                            color: '#ef4444',
+                            fontWeight: 600,
+                            color: '#dc2626',
                             textAlign: 'left',
                             borderTop: '1px solid #f1f5f9',
-                            transition: 'background-color 0.15s'
+                            cursor: 'pointer',
+                            transition: 'background-color 0.12s'
                           }}
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fee2e2')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -217,61 +292,39 @@ export default function Header() {
                     )}
                   </>
                 ) : (
-                  <Link to="/login" className="action-item">
-                    <LogIn size={18} />
-                    <span className="hide-on-mobile">Sign In</span>
+                  <Link
+                    to="/login"
+                    className="action-item"
+                    style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '0.45rem 0.9rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    <LogIn size={16} color="#059669" />
+                    <span>Sign In</span>
                   </Link>
                 )}
               </div>
 
-              {/* My Orders Button */}
-              <Link to="/orders" className="action-item hide-on-mobile" title="View past orders">
-                <Package size={18} />
-                <span>Orders</span>
-              </Link>
-
-              {/* Cart Button with Count Badge */}
+              {/* Cart Button with Count Badge & Total */}
               <Link
                 to="/cart"
-                className="btn btn-primary"
-                style={{
-                  padding: '0.55rem 1rem',
-                  borderRadius: '12px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.65rem'
-                }}
-                aria-label={`Cart with ${totalItems} items`}
+                className="cart-header-btn"
+                aria-label={`Shopping cart with ${totalItems} items, subtotal ₹${subtotal}`}
               >
                 <div style={{ position: 'relative', display: 'inline-flex' }}>
-                  <ShoppingCart size={20} />
+                  <ShoppingCart size={20} strokeWidth={2.2} />
                   {totalItems > 0 && (
-                    <span
-                      className="cart-badge"
-                      style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        right: '-10px',
-                        backgroundColor: '#ffffff',
-                        color: '#059669',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-                      }}
-                    >
+                    <span className="cart-badge">
                       {totalItems}
                     </span>
                   )}
                 </div>
 
-                <div className="hide-on-mobile" style={{ textAlign: 'left', lineHeight: 1.1 }}>
-                  <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>My Cart</div>
+                <div className="hide-on-mobile" style={{ textAlign: 'left', lineHeight: 1.15 }}>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.9, fontWeight: 600 }}>My Cart</div>
                   <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>
                     {totalItems > 0 ? `₹${subtotal}` : '0 Items'}
                   </div>
@@ -281,74 +334,14 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
-        {mobileMenuOpen && (
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              borderTop: '1px solid #e2e8f0',
-              padding: '1rem 1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              boxShadow: '0 10px 20px rgba(0,0,0,0.08)'
-            }}
-          >
-            <div style={{ marginBottom: '0.5rem' }}>
-              <SearchBar onSearch={() => setMobileMenuOpen(false)} />
-            </div>
-
-            <Link
-              to="/categories"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ fontWeight: 600, padding: '0.5rem 0', color: '#0f172a' }}
-            >
-              Browse All Categories
-            </Link>
-            <Link
-              to="/products"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ fontWeight: 600, padding: '0.5rem 0', color: '#0f172a' }}
-            >
-              All Products
-            </Link>
-            <Link
-              to="/orders"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ fontWeight: 600, padding: '0.5rem 0', color: '#0f172a' }}
-            >
-              My Orders
-            </Link>
-            {!isLoggedIn ? (
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn btn-secondary"
-                style={{ justifyContent: 'center' }}
-              >
-                Sign In / Register
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  handleLogout();
-                  setMobileMenuOpen(false);
-                }}
-                className="btn btn-outline"
-                style={{ justifyContent: 'center', color: '#ef4444' }}
-              >
-                Sign Out
-              </button>
-            )}
+        {/* Mobile Search & Location Strip (Visible only on screens < 768px) */}
+        <div className="mobile-search-strip" style={{ display: 'none' }}>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <LocationSelector className="mobile-location-bar" />
           </div>
-        )}
+          <SearchBar />
+        </div>
       </header>
-
-      {/* Accessible Mobile Location Bar */}
-      <div className="mobile-location-strip">
-        <LocationSelector variant="mobile-bar" />
-      </div>
     </>
   );
 }

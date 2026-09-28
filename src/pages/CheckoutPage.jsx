@@ -11,6 +11,7 @@ import {
   PAYMENT_METHODS,
   PAYMENT_STATES,
   isCodEligible,
+  loadRazorpayScript,
   validateUpiId,
   validateCardDetails,
   COD_MAX_AMOUNT
@@ -125,10 +126,10 @@ export default function CheckoutPage() {
           </div>
 
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
-            Order Placed Successfully!
+            ✓ Order Confirmed
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-            Thank you for shopping with Grocery Choice. Your order has been placed and saved in MySQL.
+            Thank you for shopping with Grocery Choice! Your order has been placed and is being prepared.
           </p>
 
           <div
@@ -149,7 +150,7 @@ export default function CheckoutPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
-              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Total Amount</span>
+              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Amount</span>
               <strong style={{ color: '#059669', fontSize: '1.15rem' }}>
                 ₹{confirmedOrder.totalAmount}
               </strong>
@@ -175,9 +176,9 @@ export default function CheckoutPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
-              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Delivery Slot</span>
+              <span style={{ color: '#64748b', fontSize: '0.88rem' }}>Estimated Delivery Time</span>
               <span style={{ color: '#0f172a', fontSize: '0.88rem', fontWeight: 600 }}>
-                {confirmedOrder.deliverySlot || 'Standard Delivery'}
+                {confirmedOrder.deliverySlot || 'Within 15–30 Mins (Express)'}
               </span>
             </div>
 
@@ -191,10 +192,10 @@ export default function CheckoutPage() {
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/orders" className="btn btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
-              View in My Orders
+              Track Order
             </Link>
             <Link to="/products" className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem' }}>
-              Shop More Groceries
+              Continue Shopping
             </Link>
           </div>
         </div>
@@ -309,14 +310,19 @@ export default function CheckoutPage() {
       }
 
       // 2. Online Payment via Razorpay Test Mode
-      // Step A: Request Razorpay Test Order and public Key ID from backend
-      const rzpOrderData = await paymentApi.createOrder(createdOrder.id);
-
-      if (!window.Razorpay) {
-        throw new Error('Razorpay Checkout SDK is not available. Please check your connection.');
+      // Step A: Safely ensure Razorpay Checkout SDK is loaded
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded || !window.Razorpay) {
+        throw new Error('Razorpay Checkout SDK is not available. Please check your internet connection.');
       }
 
-      // Step B: Configure Razorpay Checkout with public Key ID only
+      // Step B: Request Razorpay Test Order and public Key ID from backend
+      const rzpOrderData = await paymentApi.createOrder(createdOrder.id);
+      if (!rzpOrderData || !rzpOrderData.razorpayOrderId || !rzpOrderData.razorpayKeyId) {
+        throw new Error('Failed to initiate Razorpay payment order on server.');
+      }
+
+      // Step C: Configure Razorpay Checkout with public Key ID only (never secret)
       const options = {
         key: rzpOrderData.razorpayKeyId,
         amount: rzpOrderData.amount,
@@ -326,23 +332,28 @@ export default function CheckoutPage() {
         image: '/favicon.svg',
         order_id: rzpOrderData.razorpayOrderId,
         prefill: {
-          name: formData.fullName,
-          email: formData.email,
-          contact: formData.phone
+          name: formData.fullName || user?.fullName || '',
+          email: formData.email || user?.email || '',
+          contact: formData.phone || user?.phone || ''
         },
         theme: {
           color: '#059669'
         },
         modal: {
-          ondismiss: function () {
+          ondismiss: async function () {
             setIsSubmitting(false);
-            showToast('Payment was cancelled. You can retry anytime.', 'info');
+            try {
+              await paymentApi.recordFailure(createdOrder.id);
+            } catch (err) {
+              console.warn('Failed to record payment cancellation on backend:', err);
+            }
+            showToast('Payment was cancelled. You can retry from My Orders or checkout.', 'info');
           }
         },
         handler: async function (response) {
           try {
             setIsSubmitting(true);
-            // Step C: Server-side HMAC-SHA256 signature verification
+            // Step D: Server-side HMAC-SHA256 signature verification
             const verifyRes = await paymentApi.verifyPayment({
               orderId: createdOrder.id,
               razorpayOrderId: response.razorpay_order_id,
@@ -350,16 +361,25 @@ export default function CheckoutPage() {
               razorpaySignature: response.razorpay_signature
             });
 
-            // Step D: Show success ONLY after backend verification succeeds
-            clearCart();
-            setConfirmedOrder({
-              ...createdOrder,
-              paymentStatus: verifyRes.paymentStatus || 'PAID',
-              paymentMethod: 'Online (Razorpay)'
-            });
-            showToast(`Payment verified! Order #${createdOrder.orderNumber} confirmed.`, 'success');
+            // Step E: Show success ONLY after backend verification succeeds
+            if (verifyRes && (verifyRes.success || verifyRes.paymentStatus === 'PAID')) {
+              clearCart();
+              setConfirmedOrder({
+                ...createdOrder,
+                paymentStatus: verifyRes.paymentStatus || 'PAID',
+                paymentMethod: 'Online (Razorpay)'
+              });
+              showToast(`Payment verified! Order #${createdOrder.orderNumber} confirmed.`, 'success');
+            } else {
+              throw new Error(verifyRes?.message || 'Payment verification failed on server.');
+            }
           } catch (verifyErr) {
             console.error('Payment verification failed:', verifyErr);
+            try {
+              await paymentApi.recordFailure(createdOrder.id);
+            } catch (failErr) {
+              console.warn('Failed to record payment failure on backend:', failErr);
+            }
             showToast(verifyErr.message || 'Payment verification failed on server.', 'error');
             setErrors((prev) => ({ ...prev, submit: verifyErr.message }));
           } finally {
@@ -369,10 +389,16 @@ export default function CheckoutPage() {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (failResponse) {
+      rzp.on('payment.failed', async function (failResponse) {
         setIsSubmitting(false);
-        const errMsg = failResponse.error ? failResponse.error.description : 'Payment failed. Please try again.';
+        try {
+          await paymentApi.recordFailure(createdOrder.id);
+        } catch (err) {
+          console.warn('Failed to record payment failure on backend:', err);
+        }
+        const errMsg = failResponse?.error?.description || 'Payment was declined. Please try again.';
         showToast(errMsg, 'error');
+        setErrors((prev) => ({ ...prev, submit: errMsg }));
       });
       rzp.open();
 
@@ -447,9 +473,9 @@ export default function CheckoutPage() {
             alignItems: 'start'
           }}
         >
-          {/* Left Column: Customer & Address & Schedule */}
+          {/* Left Column: Delivery Address, Contact & Slot, Payment Method */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* 1. Customer Information */}
+            {/* 1. Delivery Address */}
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -459,77 +485,28 @@ export default function CheckoutPage() {
                 boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
               }}
             >
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
-                1. Contact Information
-              </h2>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div className="form-group">
-                  <label htmlFor="fullName" className="form-label">Full Name *</label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    className="form-input"
-                    placeholder="e.g. Rahul Sharma"
-                  />
-                  {errors.fullName && <span className="form-error">{errors.fullName}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="phone" className="form-label">Phone Number *</label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="form-input"
-                    placeholder="+91 98765 43210"
-                  />
-                  {errors.phone && <span className="form-error">{errors.phone}</span>}
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="email" className="form-label">Email Address (for invoice &amp; receipt)</label>
-                <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="form-input"
-                  placeholder="name@example.com"
-                />
-              </div>
-            </div>
-
-            {/* 2. Delivery Location */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '16px',
-                border: '1px solid #e2e8f0',
-                padding: '1.75rem',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                  2. Delivery Location
+                  1. Delivery Address
                 </h2>
-                {activeLocation && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  {activeLocation && (
+                    <button
+                      type="button"
+                      onClick={() => openLocationModal('select')}
+                      style={{ fontSize: '0.85rem', fontWeight: 700, color: '#059669', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Change
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => openLocationModal('select')}
-                    style={{ fontSize: '0.85rem', fontWeight: 700, color: '#059669', textDecoration: 'underline' }}
+                    onClick={() => openLocationModal('manual')}
+                    style={{ fontSize: '0.85rem', fontWeight: 700, color: '#059669', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
-                    Change Location
+                    + Add New Address
                   </button>
-                )}
+                </div>
               </div>
 
               {activeLocation ? (
@@ -584,18 +561,28 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '1.25rem', paddingTop: '0.85rem', borderTop: '1px dashed #a7f3d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ marginTop: '1.25rem', paddingTop: '0.85rem', borderTop: '1px dashed #a7f3d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <span style={{ fontSize: '0.78rem', color: '#047857' }}>
                       Deliveries are routed to this exact address
                     </span>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => openLocationModal('select')}
-                    >
-                      Change Location
-                    </Button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => openLocationModal('select')}
+                      >
+                        Change
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openLocationModal('manual')}
+                      >
+                        Add New
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -625,21 +612,30 @@ export default function CheckoutPage() {
                   </div>
 
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#92400e', marginBottom: '0.35rem' }}>
-                    Please select a delivery location
+                    Please enter your delivery address
                   </h3>
 
                   <p style={{ fontSize: '0.88rem', color: '#b45309', marginBottom: '1.25rem', maxWidth: '380px', margin: '0 auto 1.25rem' }}>
-                    You must select your location using browser GPS or enter an address manually before placing your order.
+                    Select your delivery location using current GPS, choose a saved address, or enter your complete address manually.
                   </p>
 
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => openLocationModal('select')}
-                    icon={<MapPin size={16} />}
-                  >
-                    Select Location
-                  </Button>
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => openLocationModal('select')}
+                      icon={<MapPin size={16} />}
+                    >
+                      Select Location
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => openLocationModal('manual')}
+                    >
+                      Enter Address Manually
+                    </Button>
+                  </div>
 
                   {errors.location && (
                     <div style={{ marginTop: '0.75rem', color: '#dc2626', fontWeight: 700, fontSize: '0.82rem' }}>
@@ -648,6 +644,64 @@ export default function CheckoutPage() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Contact Information */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                padding: '1.75rem',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+              }}
+            >
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+                Contact Details
+              </h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div className="form-group">
+                  <label htmlFor="fullName" className="form-label">Full Name *</label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="e.g. Rahul Sharma"
+                  />
+                  {errors.fullName && <span className="form-error">{errors.fullName}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="phone" className="form-label">Phone Number *</label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="+91 98765 43210"
+                  />
+                  {errors.phone && <span className="form-error">{errors.phone}</span>}
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="email" className="form-label">Email Address (for invoice &amp; receipt)</label>
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="form-input"
+                  placeholder="name@example.com"
+                />
+              </div>
             </div>
 
             {/* 3. Delivery Time Slot */}

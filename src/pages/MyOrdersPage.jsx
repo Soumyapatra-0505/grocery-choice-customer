@@ -53,10 +53,10 @@ export default function MyOrdersPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a' }}>
-            My Grocery Orders
+            My Orders
           </h1>
           <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-            Track active deliveries, inspect past receipts, and manage your Grocery Choice orders.
+            Track active deliveries, review past purchases, and manage your Grocery Choice Grocery Orders.
           </p>
         </div>
 

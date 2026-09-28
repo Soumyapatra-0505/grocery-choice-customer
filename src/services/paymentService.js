@@ -51,6 +51,39 @@ export function isCodEligible(totalAmount) {
 }
 
 /**
+ * Safely loads the Razorpay Checkout SDK script if not already present.
+ * Returns a Promise that resolves to true if window.Razorpay is available, or false on failure.
+ */
+export function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    if (typeof document === 'undefined') {
+      resolve(false);
+      return;
+    }
+    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      existing.addEventListener('load', () => resolve(Boolean(window.Razorpay)), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(Boolean(window.Razorpay));
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+/**
  * Popular UPI App options
  */
 export const POPULAR_UPI_APPS = [

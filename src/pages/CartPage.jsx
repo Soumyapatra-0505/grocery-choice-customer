@@ -40,10 +40,10 @@ export default function CartPage() {
         </div>
 
         <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
-          Your Basket is Empty
+          Your cart is empty
         </h1>
         <p style={{ color: '#64748b', fontSize: '0.98rem', maxWidth: '420px', margin: '0 auto 2rem' }}>
-          Explore our farm-fresh fruits, everyday staples, snacks, and household essentials to start filling your bag.
+          Start adding your favorite groceries. Explore our fresh fruits, vegetables, dairy, snacks, and daily staples.
         </p>
 
         <Link to="/products" className="btn btn-primary" style={{ padding: '0.8rem 1.75rem', borderRadius: '12px' }}>
@@ -62,10 +62,10 @@ export default function CartPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>
-            Shopping Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
+            Your Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
           </h1>
           <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            Review your chosen items before proceeding to express checkout.
+            Review your selected groceries before proceeding to checkout.
           </p>
         </div>
 
@@ -93,10 +93,10 @@ export default function CartPage() {
           <Truck size={18} color={amountNeededForFreeDelivery === 0 ? '#059669' : '#d97706'} />
           <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
             {amountNeededForFreeDelivery === 0 ? (
-              <span style={{ color: '#059669' }}>🎉 Congratulations! You have unlocked FREE Delivery!</span>
+              <span style={{ color: '#059669' }}>🎉 You unlocked FREE delivery!</span>
             ) : (
               <span>
-                Add <strong style={{ color: '#059669' }}>₹{amountNeededForFreeDelivery}</strong> more to your order to get <strong style={{ color: '#059669' }}>FREE Delivery</strong>!
+                Add <strong style={{ color: '#059669' }}>₹{amountNeededForFreeDelivery}</strong> more to get <strong style={{ color: '#059669' }}>FREE delivery</strong>
               </span>
             )}
           </div>

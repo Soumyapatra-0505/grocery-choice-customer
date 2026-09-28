@@ -28,7 +28,8 @@ function ManualAddressForm({ initialLocation, isEdit, onSave, onCancel }) {
     state: initialLocation?.state || '',
     pincode: initialLocation?.pincode || '',
     phone: initialLocation?.phone || '',
-    label: initialLocation?.label || 'Home'
+    label: initialLocation?.label || 'Home',
+    isDefault: Boolean(initialLocation?.isDefault)
   }));
 
   const [formErrors, setFormErrors] = useState({});
@@ -207,7 +208,7 @@ function ManualAddressForm({ initialLocation, isEdit, onSave, onCancel }) {
       </div>
 
       {/* Contact Phone (Optional) */}
-      <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+      <div className="form-group" style={{ marginBottom: '1rem' }}>
         <label htmlFor="phone" className="form-label">Delivery Contact Phone (Optional)</label>
         <input
           id="phone"
@@ -219,6 +220,18 @@ function ManualAddressForm({ initialLocation, isEdit, onSave, onCancel }) {
           placeholder="+91 98765 43210"
         />
       </div>
+
+      {/* Set as default checkbox */}
+      <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.88rem', fontWeight: 600, color: '#334155' }}>
+        <input
+          type="checkbox"
+          name="isDefault"
+          checked={Boolean(formData.isDefault)}
+          onChange={(e) => setFormData((prev) => ({ ...prev, isDefault: e.target.checked }))}
+          style={{ accentColor: '#059669', width: '16px', height: '16px' }}
+        />
+        <span>Set as default delivery address</span>
+      </label>
 
       {/* Buttons */}
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -258,6 +271,7 @@ export default function LocationModal() {
     confirmationMessage,
     saveManualLocation,
     selectLocation,
+    setDefaultAddress,
     removeLocation
   } = useDeliveryLocation();
 
@@ -566,12 +580,12 @@ export default function LocationModal() {
               </div>
 
               {/* Saved Locations List */}
-              {savedLocations.length > 0 && (
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.85rem' }}>
-                    Saved Delivery Addresses ({savedLocations.length})
-                  </div>
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.85rem' }}>
+                  Saved Delivery Addresses {savedLocations.length > 0 ? `(${savedLocations.length})` : ''}
+                </div>
 
+                {savedLocations.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {savedLocations.map((loc) => {
                       const isCurrentActive = selectedLocation?.id === loc.id;
@@ -600,7 +614,7 @@ export default function LocationModal() {
                             }}
                             aria-label={`Select address: ${loc.formattedAddress}`}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                               <span
                                 style={{
                                   fontSize: '0.72rem',
@@ -614,6 +628,22 @@ export default function LocationModal() {
                               >
                                 {loc.label || (loc.type === 'geolocation' ? 'GPS' : 'Home')}
                               </span>
+
+                              {loc.isDefault && (
+                                <span
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    backgroundColor: '#fef3c7',
+                                    color: '#b45309',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '6px'
+                                  }}
+                                >
+                                  Default
+                                </span>
+                              )}
+
                               {isCurrentActive && (
                                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                   <Check size={14} /> Active Location
@@ -625,13 +655,60 @@ export default function LocationModal() {
                               {loc.compactDisplay}
                             </div>
 
-                            <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4, marginBottom: '0.65rem' }}>
                               {loc.formattedAddress}
+                            </div>
+
+                            {/* Action Buttons: Deliver Here, Set as Default */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {!isCurrentActive && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    selectLocation(loc.id);
+                                  }}
+                                  style={{
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    color: '#ffffff',
+                                    backgroundColor: '#059669',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0.3rem 0.65rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Deliver Here
+                                </button>
+                              )}
+
+                              {!loc.isDefault && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDefaultAddress(loc.id);
+                                  }}
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    color: '#059669',
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid #a7f3d0',
+                                    borderRadius: '6px',
+                                    padding: '0.25rem 0.55rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Set as Default
+                                </button>
+                              )}
                             </div>
                           </div>
 
                           {/* Edit / Remove actions */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
                             {loc.type === 'manual' && (
                               <button
                                 type="button"
@@ -641,46 +718,82 @@ export default function LocationModal() {
                                 }}
                                 aria-label={`Edit address ${loc.compactDisplay}`}
                                 style={{
-                                  padding: '0.4rem',
-                                  color: '#64748b',
+                                  padding: '0.35rem 0.55rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 600,
+                                  color: '#475569',
                                   borderRadius: '6px',
                                   display: 'inline-flex',
-                                  background: 'none',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  backgroundColor: '#f1f5f9',
                                   border: 'none',
                                   cursor: 'pointer'
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.color = '#059669')}
-                                onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = '#059669';
+                                  e.currentTarget.style.backgroundColor = '#ecfdf5';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = '#475569';
+                                  e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                }}
                               >
-                                <Edit2 size={16} />
+                                <Edit2 size={13} />
+                                <span>Edit</span>
                               </button>
                             )}
 
                             <button
                               type="button"
                               onClick={() => removeLocation(loc.id)}
-                              aria-label={`Remove address ${loc.compactDisplay}`}
+                              aria-label={`Delete address ${loc.compactDisplay}`}
                               style={{
-                                padding: '0.4rem',
-                                color: '#64748b',
+                                padding: '0.35rem 0.55rem',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                color: '#94a3b8',
                                 borderRadius: '6px',
                                 display: 'inline-flex',
-                                background: 'none',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                backgroundColor: 'transparent',
                                 border: 'none',
                                 cursor: 'pointer'
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#ef4444';
+                                e.currentTarget.style.backgroundColor = '#fee2e2';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#94a3b8';
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={13} />
+                              <span>Delete</span>
                             </button>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div
+                    style={{
+                      padding: '1.25rem',
+                      borderRadius: '12px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px dashed #cbd5e1',
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    No saved addresses yet. Use GPS or enter your address manually above.
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

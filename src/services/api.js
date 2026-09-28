@@ -131,9 +131,25 @@ export const authApi = {
     return await request('/api/auth/me');
   },
 
+  // PUT /api/auth/me
+  updateProfile: async (profileData) => {
+    return await request('/api/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+  },
+
   // GET /api/auth/dev-otp/{identifier} (Dev/Testing only)
   getDevOtp: async (identifier) => {
     return await request(`/api/auth/dev-otp/${encodeURIComponent(identifier)}`);
+  },
+
+  // POST /api/auth/msg91/verify
+  verifyMsg91Token: async (accessToken, identifier, name = '') => {
+    return await request('/api/auth/msg91/verify', {
+      method: 'POST',
+      body: JSON.stringify({ accessToken, identifier, name })
+    });
   }
 };
 
@@ -247,6 +263,14 @@ export const paymentApi = {
         razorpay_payment_id: razorpayPaymentId,
         razorpay_signature: razorpaySignature
       })
+    });
+  },
+
+  // POST /api/payments/fail
+  recordFailure: async (orderId) => {
+    return await request('/api/payments/fail', {
+      method: 'POST',
+      body: JSON.stringify({ orderId })
     });
   }
 };

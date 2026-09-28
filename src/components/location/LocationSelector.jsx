@@ -8,13 +8,17 @@ export default function LocationSelector({ variant = 'header', className = '' })
   const isCompact = variant === 'compact';
   const isMobileBar = variant === 'mobile-bar';
 
+  const displayText = selectedLocation
+    ? (selectedLocation.compactDisplay || selectedLocation.formattedAddress)
+    : 'Please enter your delivery address';
+
   if (isMobileBar) {
     return (
       <button
         type="button"
         onClick={() => openLocationModal('select')}
         className={`mobile-location-bar ${className}`}
-        aria-label={selectedLocation ? `Delivery location: ${selectedLocation.compactDisplay}. Click to change` : 'Select delivery location'}
+        aria-label={selectedLocation ? `Delivery location: ${displayText}. Click to change` : 'Please enter your delivery address'}
         style={{
           width: '100%',
           display: 'flex',
@@ -36,7 +40,7 @@ export default function LocationSelector({ variant = 'header', className = '' })
               Deliver to
             </span>
             <span style={{ fontWeight: 700, color: '#065f46' }}>
-              {selectedLocation ? selectedLocation.compactDisplay : 'Select your location'}
+              {displayText}
             </span>
           </div>
         </div>
@@ -57,8 +61,8 @@ export default function LocationSelector({ variant = 'header', className = '' })
       aria-haspopup="dialog"
       aria-label={
         selectedLocation
-          ? `Delivering to ${selectedLocation.compactDisplay}. Click to change location.`
-          : 'Deliver to: Select your location'
+          ? `Delivering to ${displayText}. Click to change location.`
+          : 'Please enter your delivery address'
       }
       style={{
         display: 'inline-flex',
@@ -98,7 +102,7 @@ export default function LocationSelector({ variant = 'header', className = '' })
         <MapPin size={17} />
       </div>
 
-      <div style={{ lineHeight: 1.2, maxWidth: '160px', overflow: 'hidden' }}>
+      <div style={{ lineHeight: 1.2, maxWidth: selectedLocation ? '180px' : '230px', overflow: 'hidden' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           Deliver to
         </div>
@@ -111,9 +115,9 @@ export default function LocationSelector({ variant = 'header', className = '' })
             overflow: 'hidden',
             textOverflow: 'ellipsis'
           }}
-          title={selectedLocation ? selectedLocation.compactDisplay : 'Select your location'}
+          title={displayText}
         >
-          {selectedLocation ? selectedLocation.compactDisplay : 'Select your location'}
+          {displayText}
         </div>
       </div>
 
@@ -121,3 +125,4 @@ export default function LocationSelector({ variant = 'header', className = '' })
     </button>
   );
 }
+

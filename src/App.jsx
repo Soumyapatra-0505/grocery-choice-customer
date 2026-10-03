@@ -24,6 +24,7 @@ import MyOrdersPage from './pages/MyOrdersPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import PaymentBridgePage from './pages/PaymentBridgePage';
 
 // Scroll to top helper on route change
 function ScrollToTop() {
@@ -36,6 +37,51 @@ function ScrollToTop() {
   return null;
 }
 
+function AppContent() {
+  const { pathname } = useLocation();
+  const isPaymentBridge = pathname.startsWith('/payment/bridge');
+
+  if (isPaymentBridge) {
+    return (
+      <main className="main-wrapper" id="main-content" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Routes>
+          <Route path="/payment/bridge" element={<PaymentBridgePage />} />
+        </Routes>
+      </main>
+    );
+  }
+
+  return (
+    <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Header />
+      <Navbar />
+
+      <main className="main-wrapper" id="main-content">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/products" element={<ProductListingPage />} />
+          <Route path="/product/:id" element={<ProductDetailsPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/orders" element={<MyOrdersPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/payment/bridge" element={<PaymentBridgePage />} />
+          {/* Fallback route */}
+          <Route path="*" element={<HomePage />} />
+        </Routes>
+      </main>
+
+      <Footer />
+      <Toast />
+      <LocationModal />
+      <MobileNav />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -44,33 +90,8 @@ export default function App() {
           <CartProvider>
             <Router>
               <ScrollToTop />
-              <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-                <Header />
-                <Navbar />
-
-              <main className="main-wrapper" id="main-content">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/categories" element={<CategoriesPage />} />
-                  <Route path="/products" element={<ProductListingPage />} />
-                  <Route path="/product/:id" element={<ProductDetailsPage />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                  <Route path="/orders" element={<MyOrdersPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  {/* Fallback route */}
-                  <Route path="*" element={<HomePage />} />
-                </Routes>
-              </main>
-
-              <Footer />
-              <Toast />
-              <LocationModal />
-              <MobileNav />
-            </div>
-          </Router>
+              <AppContent />
+            </Router>
           </CartProvider>
         </CatalogProvider>
       </LocationProvider>

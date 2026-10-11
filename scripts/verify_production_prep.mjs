@@ -6,7 +6,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const CUSTOMER_LOCAL = 'http://localhost:5173';
 const OWNER_LOCAL = 'http://localhost:5174';
 const BACKEND_LOCAL = 'http://localhost:8080';
-const PROD_BACKEND_URL = 'https://grocery-choice-backend-production.up.railway.app';
+const PROD_BACKEND_URL = 'https://grocery-choice-backend-production-97c7.up.railway.app';
 const PROD_CUSTOMER_URL = 'https://grocery-choice-customer-8ntfdslp-grocery-choice.vercel.app';
 
 const results = [];
@@ -43,7 +43,7 @@ async function runVerification() {
   const custJsFile = custDistFiles.find(f => f.endsWith('.js'));
   const custJsContent = fs.readFileSync(`d:/Grocery Choice/customer/dist/assets/${custJsFile}`, 'utf8');
 
-  const custBundleHasProdUrl = custJsContent.includes('grocery-choice-backend-production.up.railway.app');
+  const custBundleHasProdUrl = custJsContent.includes('grocery-choice-backend-production-97c7.up.railway.app');
   const custBundleHasNoLocalhostApi = !custJsContent.includes('http://localhost:8080');
   record('Customer Production Bundle Uses Railway URL', custBundleHasProdUrl, `Found in ${custJsFile}`);
   record('Customer Production Bundle Has No Hardcoded Localhost API', custBundleHasNoLocalhostApi, 'Zero occurrences of http://localhost:8080');

@@ -27,7 +27,7 @@ function assert(condition, message, details = '') {
 // 1. Production Environment Variables
 console.log('--- 1. Production Environment Variables ---');
 const prodEnv = loadEnv('production', customerDir);
-const expectedProdUrl = 'https://grocery-choice-backend-production.up.railway.app';
+const expectedProdUrl = 'https://grocery-choice-backend-production-97c7.up.railway.app';
 assert(
   prodEnv.VITE_API_BASE_URL === expectedProdUrl,
   'Customer Production Environment Variable',

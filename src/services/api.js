@@ -3,9 +3,14 @@
  * Centralized REST client connecting to Spring Boot backend.
  */
 
+const PRODUCTION_API_URL = 'https://grocery-choice-backend-production-97c7.up.railway.app';
+
+// Enforce verified production Railway backend URL.
+// In production builds, import.meta.env.DEV is false, ensuring localhost:8080 is completely
+// eliminated and cannot be used as a fallback.
 const RAW_API_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
-  'http://localhost:8080';
+  (import.meta.env?.DEV ? 'http://localhost:8080' : PRODUCTION_API_URL);
 
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, '');
 

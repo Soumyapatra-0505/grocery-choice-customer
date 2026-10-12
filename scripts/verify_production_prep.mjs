@@ -52,7 +52,7 @@ async function runVerification() {
   const ownerJsFile = ownerDistFiles.find(f => f.endsWith('.js'));
   const ownerJsContent = fs.readFileSync(`d:/Grocery Choice/owner/dist/assets/${ownerJsFile}`, 'utf8');
 
-  const ownerBundleHasProdUrl = ownerJsContent.includes('grocery-choice-backend-production.up.railway.app');
+  const ownerBundleHasProdUrl = ownerJsContent.includes('grocery-choice-backend-production-97c7.up.railway.app');
   const ownerBundleHasNoLocalhostApi = !ownerJsContent.includes('http://localhost:8080');
   record('Owner Production Bundle Uses Railway URL', ownerBundleHasProdUrl, `Found in ${ownerJsFile}`);
   record('Owner Production Bundle Has No Hardcoded Localhost API', ownerBundleHasNoLocalhostApi, 'Zero occurrences of http://localhost:8080');

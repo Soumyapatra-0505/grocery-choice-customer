@@ -362,15 +362,17 @@ export async function sendOtp(rawIdentifier) {
   try {
     const res = await authApi.sendOtp(normalized, 'LOGIN');
 
-    // In local development / test mode, fetch dev OTP for the auto-fill helper
+    // Only in local development mode (Vite DEV), fetch dev OTP for the auto-fill helper
     let devCode = null;
-    try {
-      const devRes = await authApi.getDevOtp(normalized);
-      if (devRes && devRes.otp) {
-        devCode = devRes.otp;
+    if (import.meta.env.DEV) {
+      try {
+        const devRes = await authApi.getDevOtp(normalized);
+        if (devRes && devRes.otp) {
+          devCode = devRes.otp;
+        }
+      } catch {
+        // Dev endpoint may not be reached or enabled
       }
-    } catch {
-      // Dev endpoint may not be reached or enabled in strict prod
     }
 
     return {
@@ -381,8 +383,8 @@ export async function sendOtp(rawIdentifier) {
       expiresInSeconds: res.expiresInSeconds || OTP_EXPIRY_SECONDS,
       resendCooldownSeconds: res.resendCooldownSeconds || RESEND_COOLDOWN_SECONDS,
       message: res.message || (validation.type === 'mobile'
-        ? `4-digit OTP sent to +91 ${normalized}`
-        : `4-digit OTP sent to ${normalized}`)
+        ? `6-digit OTP sent to +91 ${normalized}`
+        : `6-digit OTP sent to ${normalized}`)
     };
   } catch (err) {
     console.error('Error sending OTP from server:', err);
@@ -457,11 +459,11 @@ export async function verifyOtp(rawIdentifier, inputCode, name = '') {
   const validation = validateIdentifier(rawIdentifier);
   const normalized = validation.isValid ? validation.normalized : normalizeIdentifier(rawIdentifier);
 
-  if (!inputCode || typeof inputCode !== 'string' || inputCode.length !== 4 || !/^\d{4}$/.test(inputCode)) {
+  if (!inputCode || typeof inputCode !== 'string' || !/^\d{4,6}$/.test(inputCode)) {
     return {
       success: false,
       error: 'INVALID_FORMAT',
-      message: 'Please enter a complete 4-digit numeric OTP'
+      message: 'Please enter a valid numeric OTP'
     };
   }
 

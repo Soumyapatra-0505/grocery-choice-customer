@@ -33,7 +33,7 @@ export default function LoginPage() {
   // Input states
   const [identifier, setIdentifier] = useState('');
   const [identifierType, setIdentifierType] = useState('mobile'); // 'mobile' | 'email'
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
 
   // UI & Feedback states
   const [error, setError] = useState('');
@@ -48,7 +48,7 @@ export default function LoginPage() {
   const [isListeningWebOtp, setIsListeningWebOtp] = useState(false);
   const webOtpAbortRef = useRef(null);
 
-  // Refs for the 4 OTP input boxes
+  // Refs for the 6 OTP input boxes
   const inputRefs = useRef([]);
 
   const { login } = useAuth();
@@ -90,8 +90,8 @@ export default function LoginPage() {
 
     setError('');
 
-    if (code.length < 4) {
-      setError('Please enter all 4 digits of the OTP.');
+    if (code.length < 6) {
+      setError('Please enter all 6 digits of the OTP.');
       return;
     }
 
@@ -152,8 +152,8 @@ export default function LoginPage() {
           setIsListeningWebOtp(false);
           if (otpCredential && otpCredential.code) {
             const code = otpCredential.code.trim();
-            const digits = code.replace(/\D/g, '').slice(0, 4);
-            if (digits.length === 4) {
+            const digits = code.replace(/\D/g, '').slice(0, 6);
+            if (digits.length === 6) {
               const newDigits = digits.split('');
               setOtpDigits(newDigits);
               showToast('OTP auto-detected from SMS!', 'info');
@@ -212,7 +212,7 @@ export default function LoginPage() {
       setIdentifierType(result.type);
       setDemoOtp(result.demoCode);
       setStep('otp');
-      setOtpDigits(['', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setResendTimer(result.resendCooldownSeconds || RESEND_COOLDOWN_SECONDS);
       setInfoMessage(result.message);
       showToast(result.message, 'success');
@@ -242,7 +242,7 @@ export default function LoginPage() {
 
     if (result.success) {
       setDemoOtp(result.demoCode || null);
-      setOtpDigits(['', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setResendTimer(result.resendCooldownSeconds || RESEND_COOLDOWN_SECONDS);
       setInfoMessage(result.message || `New OTP sent to your ${identifierType}.`);
       showToast(result.message || `New OTP sent to your ${identifierType}!`, 'success');
@@ -273,7 +273,7 @@ export default function LoginPage() {
     setError('');
     setInfoMessage('');
     setDemoOtp(null);
-    setOtpDigits(['', '', '', '']);
+    setOtpDigits(['', '', '', '', '', '']);
   };
 
   // -------------------------------------------------------------
@@ -297,13 +297,13 @@ export default function LoginPage() {
     if (error) setError('');
 
     // Advance focus to next input if digit entered
-    if (digit && index < 3 && inputRefs.current[index + 1]) {
+    if (digit && index < 5 && inputRefs.current[index + 1]) {
       inputRefs.current[index + 1].focus();
     }
 
-    // If last digit filled, auto-verify if all 4 digits present
+    // If last digit filled, auto-verify if all 6 digits present
     const fullCode = updated.join('');
-    if (fullCode.length === 4 && !updated.includes('')) {
+    if (fullCode.length === 6 && !updated.includes('')) {
       handleVerify(fullCode);
     }
   };
@@ -321,7 +321,7 @@ export default function LoginPage() {
     } else if (e.key === 'ArrowLeft' && index > 0 && inputRefs.current[index - 1]) {
       e.preventDefault();
       inputRefs.current[index - 1].focus();
-    } else if (e.key === 'ArrowRight' && index < 3 && inputRefs.current[index + 1]) {
+    } else if (e.key === 'ArrowRight' && index < 5 && inputRefs.current[index + 1]) {
       e.preventDefault();
       inputRefs.current[index + 1].focus();
     }
@@ -330,11 +330,11 @@ export default function LoginPage() {
   const handlePaste = (e) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').trim();
-    const digitsOnly = pastedData.replace(/\D/g, '').slice(0, 4);
+    const digitsOnly = pastedData.replace(/\D/g, '').slice(0, 6);
 
     if (!digitsOnly) return;
 
-    const newDigits = ['', '', '', ''];
+    const newDigits = ['', '', '', '', '', ''];
     for (let i = 0; i < digitsOnly.length; i++) {
       newDigits[i] = digitsOnly[i];
     }
@@ -342,13 +342,13 @@ export default function LoginPage() {
     if (error) setError('');
 
     // Focus appropriate box
-    const nextIndex = Math.min(digitsOnly.length, 3);
+    const nextIndex = Math.min(digitsOnly.length, 5);
     if (inputRefs.current[nextIndex]) {
       inputRefs.current[nextIndex].focus();
     }
 
-    // Auto verify if complete 4 digits pasted
-    if (digitsOnly.length === 4) {
+    // Auto verify if complete 6 digits pasted
+    if (digitsOnly.length === 6) {
       handleVerify(digitsOnly);
     }
   };
@@ -356,12 +356,12 @@ export default function LoginPage() {
   // Quick helper to fill demo OTP
   const handleAutoFillDemoOtp = () => {
     if (demoOtp) {
-      const code = demoOtp.replace(/\D/g, '').slice(0, 4);
-      if (code.length === 4) {
+      const code = demoOtp.replace(/\D/g, '').slice(0, 6);
+      if (code.length === 6) {
         const digits = code.split('');
         setOtpDigits(digits);
-        if (inputRefs.current[3]) {
-          inputRefs.current[3].focus();
+        if (inputRefs.current[5]) {
+          inputRefs.current[5].focus();
         }
         handleVerify(code);
       }
@@ -396,7 +396,7 @@ export default function LoginPage() {
           <p style={{ fontSize: '0.88rem', color: '#64748b' }}>
             {step === 'identifier'
               ? 'Fresh groceries, delivered to your doorstep.'
-              : 'Enter the 4-digit OTP sent to your phone.'}
+              : 'Enter the 6-digit OTP sent to your phone.'}
           </p>
         </div>
 
@@ -460,7 +460,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem', display: 'block' }}>
-                We'll send a 4-digit one-time password (OTP) to verify your account.
+                We'll send a 6-digit one-time password (OTP) to verify your account.
               </span>
             </div>
 
@@ -512,7 +512,7 @@ export default function LoginPage() {
         )}
 
         {/* ========================================================= */}
-        {/* STEP 2: 4-DIGIT OTP VERIFICATION                        */}
+        {/* STEP 2: 6-DIGIT OTP VERIFICATION                        */}
         {/* ========================================================= */}
         {step === 'otp' && (
           <div className="otp-wrapper">
@@ -556,7 +556,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* 4 Digit Input Boxes */}
+            {/* 6 Digit Input Boxes */}
             <div>
               <label
                 htmlFor="otp-digit-0"
@@ -569,14 +569,14 @@ export default function LoginPage() {
                   textAlign: 'center'
                 }}
               >
-                Enter 4-Digit OTP
+                Enter 6-Digit OTP
               </label>
 
               <div
                 className="otp-inputs-grid"
                 onPaste={handlePaste}
                 role="group"
-                aria-label="4-Digit Verification Code"
+                aria-label="6-Digit Verification Code"
               >
                 {otpDigits.map((digit, index) => (
                   <input
@@ -592,7 +592,7 @@ export default function LoginPage() {
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     className={`otp-box ${digit ? 'has-value' : ''} ${error ? 'is-invalid' : ''}`}
                     autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                    aria-label={`Digit ${index + 1} of 4`}
+                    aria-label={`Digit ${index + 1} of 6`}
                   />
                 ))}
               </div>
@@ -639,7 +639,7 @@ export default function LoginPage() {
               variant="primary"
               size="lg"
               fullWidth
-              disabled={isSubmitting || otpDigits.join('').length < 4}
+              disabled={isSubmitting || otpDigits.join('').length < 6}
               icon={<ShieldCheck size={18} />}
             >
               {isSubmitting ? 'Verifying OTP...' : 'Verify OTP'}

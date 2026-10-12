@@ -116,21 +116,14 @@ export default function CartPage() {
       </div>
 
       {/* Grid: Cart Items & Order Summary */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '2.5rem',
-          alignItems: 'start'
-        }}
-      >
+      <div className="cart-layout-grid">
         {/* Cart Items List */}
         <div
+          className="cart-box-card"
           style={{
             backgroundColor: '#ffffff',
             borderRadius: '20px',
             border: '1px solid #e2e8f0',
-            padding: '1.5rem',
             boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
           }}
         >
@@ -160,11 +153,11 @@ export default function CartPage() {
 
         {/* Order Summary Card */}
         <div
+          className="cart-box-card cart-summary-card"
           style={{
             backgroundColor: '#ffffff',
             borderRadius: '20px',
             border: '1px solid #e2e8f0',
-            padding: '1.75rem',
             boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
             position: 'sticky',
             top: 'calc(var(--header-height) + 1.5rem)'

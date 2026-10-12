@@ -81,10 +81,10 @@ export default function Header() {
       {/* Top Value / Trust Announcement Strip */}
       <div className="top-announcement">
         <span>⚡ Superfast 15–30 Min Delivery Near You</span>
-        <span style={{ opacity: 0.6 }}>•</span>
-        <span>🎉 Free Delivery on Orders Over ₹199</span>
-        <span style={{ opacity: 0.6 }}>•</span>
-        <span>✨ 100% Quality Guaranteed</span>
+        <span className="top-announcement-divider" style={{ opacity: 0.6 }}>•</span>
+        <span className="top-announcement-secondary">🎉 Free Delivery on Orders Over ₹199</span>
+        <span className="top-announcement-divider top-announcement-secondary" style={{ opacity: 0.6 }}>•</span>
+        <span className="top-announcement-secondary">✨ 100% Quality Guaranteed</span>
       </div>
 
       <header className="app-header">
@@ -294,16 +294,17 @@ export default function Header() {
                 ) : (
                   <Link
                     to="/login"
-                    className="action-item"
+                    className="action-item header-signin-btn"
                     style={{
                       border: '1px solid #e2e8f0',
                       borderRadius: '12px',
                       padding: '0.45rem 0.9rem',
                       fontWeight: 700
                     }}
+                    aria-label="Sign In"
                   >
                     <LogIn size={16} color="#059669" />
-                    <span>Sign In</span>
+                    <span className="hide-on-xs">Sign In</span>
                   </Link>
                 )}
               </div>
@@ -334,8 +335,8 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Search & Location Strip (Visible only on screens < 768px) */}
-        <div className="mobile-search-strip" style={{ display: 'none' }}>
+        {/* Mobile Search & Location Strip (Visible only on screens < 768px via CSS) */}
+        <div className="mobile-search-strip">
           <div style={{ marginBottom: '0.5rem' }}>
             <LocationSelector className="mobile-location-bar" />
           </div>

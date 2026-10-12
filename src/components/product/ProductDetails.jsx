@@ -35,18 +35,7 @@ export default function ProductDetails({ product }) {
       </nav>
 
       {/* Main Details Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '2.5rem',
-          backgroundColor: '#ffffff',
-          borderRadius: '20px',
-          border: '1px solid #e2e8f0',
-          padding: '2rem',
-          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)'
-        }}
-      >
+      <div className="product-details-grid">
         {/* Large Product Image Preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div
@@ -94,20 +83,7 @@ export default function ProductDetails({ product }) {
           </div>
 
           {/* Freshness & Trust Guarantee Strip */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '0.75rem',
-              backgroundColor: '#f8fafc',
-              padding: '0.85rem',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'center',
-              fontSize: '0.75rem',
-              color: '#475569'
-            }}
-          >
+          <div className="product-trust-strip">
             <div>
               <Truck size={18} color="#059669" style={{ margin: '0 auto 0.25rem' }} />
               <div>15-30 Min Delivery</div>

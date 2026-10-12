@@ -46,13 +46,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="container" style={{ paddingTop: '3rem', paddingBottom: '4rem', maxWidth: '480px' }}>
+    <div className="container login-container" style={{ paddingTop: '3rem', paddingBottom: '4rem', maxWidth: '480px' }}>
       <div
+        className="login-card"
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '20px',
           border: '1px solid #e2e8f0',
-          padding: '2.5rem',
           boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)'
         }}
       >

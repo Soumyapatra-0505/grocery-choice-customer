@@ -21,7 +21,7 @@ export default function Navbar() {
 
   return (
     <nav className="app-navbar" aria-label="Product categories navigation">
-      <div className="container">
+      <div className="container navbar-container">
         <div className="navbar-inner">
           <NavLink
             to="/categories"

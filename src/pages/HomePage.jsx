@@ -101,14 +101,7 @@ export default function HomePage() {
         />
 
         <div className="container">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              alignItems: 'center',
-              gap: '3rem'
-            }}
-          >
+          <div className="hero-grid">
             {/* Left Content */}
             <div>
               {/* Delivery location chip */}
@@ -241,13 +234,7 @@ export default function HomePage() {
             </div>
 
             {/* Right Product Composition Card */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '1rem'
-              }}
-            >
+            <div className="hero-cards-grid">
               <div
                 style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.12)',

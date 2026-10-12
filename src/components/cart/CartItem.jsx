@@ -42,7 +42,7 @@ export default function CartItem({ item }) {
       </Link>
 
       {/* Product Info */}
-      <div style={{ flex: '1 1 200px' }}>
+      <div style={{ flex: '1 1 140px', minWidth: 0 }}>
         <Link
           to={`/product/${item.id}`}
           style={{

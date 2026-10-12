@@ -78,22 +78,28 @@ export default function Logo({ size = 'medium', variant = 'full', className = ''
 
       {!isIconOnly && (
         <div className="logo-brand-text" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-          <span style={{
-            fontSize: size === 'small' ? '1.15rem' : size === 'large' ? '1.65rem' : '1.35rem',
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            color: '#0f172a',
-            fontFamily: 'inherit'
-          }}>
+          <span
+            className="logo-title"
+            style={{
+              fontSize: size === 'small' ? '1.15rem' : size === 'large' ? '1.65rem' : '1.35rem',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              color: '#0f172a',
+              fontFamily: 'inherit'
+            }}
+          >
             Grocery<span style={{ color: '#059669', marginLeft: '0.15rem' }}>Choice</span>
           </span>
-          <span style={{
-            fontSize: '0.68rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: '#64748b'
-          }}>
+          <span
+            className="logo-subtitle"
+            style={{
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: '#64748b'
+            }}
+          >
             Fresh &amp; Daily Market
           </span>
         </div>

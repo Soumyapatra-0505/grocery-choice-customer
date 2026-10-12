@@ -10,11 +10,11 @@ export default function CategoriesPage() {
     <div className="categories-page container" style={{ paddingTop: '2rem', paddingBottom: '3rem' }}>
       {/* Header Banner */}
       <div
+        className="categories-banner-card"
         style={{
           background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
           border: '1px solid #a7f3d0',
           borderRadius: '20px',
-          padding: '2.5rem 2rem',
           marginBottom: '2.5rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -119,13 +119,7 @@ export default function CategoriesPage() {
 
       {/* Categories Visual Grid */}
       {categories.length > 0 && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '1.5rem'
-          }}
-        >
+        <div className="categories-page-grid">
           {categories.map((cat) => {
             const count = products.filter(
               (p) => String(p.categoryId) === String(cat.id) || p.category === cat.slug

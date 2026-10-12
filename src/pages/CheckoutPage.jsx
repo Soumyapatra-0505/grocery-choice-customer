@@ -465,14 +465,7 @@ export default function CheckoutPage() {
       </div>
 
       <form onSubmit={handlePlaceOrder}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2.5rem',
-            alignItems: 'start'
-          }}
-        >
+        <div className="checkout-layout-grid">
           {/* Left Column: Delivery Address, Contact & Slot, Payment Method */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* 1. Delivery Address */}
